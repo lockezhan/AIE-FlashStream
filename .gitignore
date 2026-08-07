@@ -1,0 +1,9 @@
+*.exe
+*.o
+*.log
+_x/
+.Xil/
+.ipcache/
+*.json
+*.csv
+!llama3_attention.xclbin
