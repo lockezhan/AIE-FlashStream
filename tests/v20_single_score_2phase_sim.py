@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate and verify full-graph V20 packet-stream simulation data."""
+"""Generate and verify full-graph V21 PV6 packet-stream simulation data."""
 
 import argparse
 import json
@@ -12,7 +12,8 @@ ROWS = 32
 HEAD_D = 128
 GROUPS = 8
 QUERIES_PER_GROUP = 4
-SLICES = ((0, 28), (28, 28), (56, 24), (80, 24), (104, 24))
+SLICES = ((0, 24), (24, 24), (48, 16),
+          (64, 24), (88, 24), (112, 16))
 OCTET_ORDER = (0, 1, 4, 5, 8, 9, 12, 13,
                2, 3, 6, 7, 10, 11, 14, 15)
 QUANT_GROUP_DIMS = tuple(
@@ -357,8 +358,8 @@ def verify(output_dir):
             print(f"head={q_head:02d} max={head_maximum[q_head]:.9g} "
                   f"mean={head_total[q_head] / head_count[q_head]:.9g}")
         print(f"maximum_location={maximum_location}")
-        raise SystemExit("V20 full simulation numerical gate failed")
-    print("V20 single-Score two-phase full simulation PASS")
+        raise SystemExit("V21 PV6 full simulation numerical gate failed")
+    print("V21 PV6 single-Score two-phase full simulation PASS")
 
 
 def main():
