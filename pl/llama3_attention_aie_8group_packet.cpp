@@ -1,4 +1,4 @@
-// PL kernel: 28+28+24+24+24 Value tiles and four-plane output.
+// PL kernel: 24+24+16+24+24+16 Value tiles and four-plane output.
 // ============================================================================
 
 #include "llama3_attention_pl_common.hpp"
@@ -8,12 +8,15 @@ namespace {
 
 using namespace llama3_attn;
 
-constexpr int kSliceCount = 5;
-constexpr int kSliceWidths[kSliceCount] = {28, 28, 24, 24, 24};
-constexpr int kSliceOffsets[kSliceCount] = {0, 28, 56, 80, 104};
+constexpr int kSliceCount = 6;
+constexpr int kSliceWidths[kSliceCount] = {24, 24, 16, 24, 24, 16};
+constexpr int kSliceOffsets[kSliceCount] = {0, 24, 48, 64, 88, 112};
 constexpr int kValueWordsPerGroup[kSliceCount] = {
-    32 * 28 * 2 / 16, 32 * 28 * 2 / 16, 32 * 24 * 2 / 16,
-    32 * 24 * 2 / 16, 32 * 24 * 2 / 16};
+    96, 96, 64, 96, 96, 64};
+static_assert(24 + 24 + 16 + 24 + 24 + 16 == 128, "PV slices must cover D=128");
+static_assert(24 == 0 + 24 && 48 == 24 + 24 && 64 == 48 + 16 &&
+              88 == 64 + 24 && 112 == 88 + 24 && 128 == 112 + 16,
+              "PV slice offsets must be contiguous");
 constexpr int kQueriesPerPacket = 2;
 constexpr int kPacketsPerGroup = kQueriesPerKvHead / kQueriesPerPacket;
 constexpr int kRowsPerPacket = kQueriesPerPacket * kCompactSequence;
@@ -51,7 +54,7 @@ void emit_v_slice_tiles(const DdrWord rows[4][4], RawStream& raw) {
   }
 }
 
-void route_v_bf16(const DdrWord* v, int batch, RawStream raw[5]) {
+void route_v_bf16(const DdrWord* v, int batch, RawStream raw[6]) {
 #pragma HLS INLINE off
   const unsigned long long batch_base =
       static_cast<unsigned long long>(batch) * kKvWordsPerBatch;
@@ -70,11 +73,12 @@ void route_v_bf16(const DdrWord* v, int batch, RawStream raw[5]) {
           rows[key][word] = v[key_base + key * 4 + word];
         }
       }
-      emit_v_slice_tiles<0, 28>(rows, raw[0]);
-      emit_v_slice_tiles<28, 28>(rows, raw[1]);
-      emit_v_slice_tiles<56, 24>(rows, raw[2]);
-      emit_v_slice_tiles<80, 24>(rows, raw[3]);
-      emit_v_slice_tiles<104, 24>(rows, raw[4]);
+      emit_v_slice_tiles<0, 24>(rows, raw[0]);
+      emit_v_slice_tiles<24, 24>(rows, raw[1]);
+      emit_v_slice_tiles<48, 16>(rows, raw[2]);
+      emit_v_slice_tiles<64, 24>(rows, raw[3]);
+      emit_v_slice_tiles<88, 24>(rows, raw[4]);
+      emit_v_slice_tiles<112, 16>(rows, raw[5]);
     }
   }
 }
@@ -213,8 +217,9 @@ void run_attention_dataflow(
     DdrWord* o0, DdrWord* o1, DdrWord* o2, DdrWord* o3, int batch,
     AxisStream& packet_q0, AxisStream& packet_q1, AxisStream& packet_k0, AxisStream& packet_k1,
     AxisStream& packet_v0, AxisStream& packet_v1, AxisStream& packet_v2, AxisStream& packet_v3,
-    AxisStream& packet_v4, AxisStream& packet_o0, AxisStream& packet_o1, AxisStream& packet_o2,
-    AxisStream& packet_o3, AxisStream& packet_o4) {
+    AxisStream& packet_v4, AxisStream& packet_v5, AxisStream& packet_o0,
+    AxisStream& packet_o1, AxisStream& packet_o2, AxisStream& packet_o3,
+    AxisStream& packet_o4, AxisStream& packet_o5) {
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
   DdrStream q_ddr[2];
@@ -225,12 +230,12 @@ void run_attention_dataflow(
   RawStream k_quantized[2];
   RawStream q_payload[2];
   RawStream k_payload[2];
-  RawStream v_raw[5];
-  hls::stream<SlicePair<28>> output_pairs28[2];
-  hls::stream<SlicePair<24>> output_pairs24[3];
-  SliceRowStream slice_rows[5];
-  SliceRowStream cross_left[3];
-  SliceRowStream cross_right[3];
+  RawStream v_raw[6];
+  hls::stream<SlicePair<24>> output_pairs24[4];
+  hls::stream<SlicePair<16>> output_pairs16[2];
+  SliceRowStream slice_rows[6];
+  SliceRowStream slice1_left, slice1_right;
+  SliceRowStream slice4_left, slice4_right;
 #pragma HLS ARRAY_PARTITION variable=q_ddr complete
 #pragma HLS ARRAY_PARTITION variable=q_scales complete
 #pragma HLS ARRAY_PARTITION variable=k_scales complete
@@ -239,11 +244,9 @@ void run_attention_dataflow(
 #pragma HLS ARRAY_PARTITION variable=q_payload complete
 #pragma HLS ARRAY_PARTITION variable=k_payload complete
 #pragma HLS ARRAY_PARTITION variable=v_raw complete
-#pragma HLS ARRAY_PARTITION variable=output_pairs28 complete
 #pragma HLS ARRAY_PARTITION variable=output_pairs24 complete
+#pragma HLS ARRAY_PARTITION variable=output_pairs16 complete
 #pragma HLS ARRAY_PARTITION variable=slice_rows complete
-#pragma HLS ARRAY_PARTITION variable=cross_left complete
-#pragma HLS ARRAY_PARTITION variable=cross_right complete
 #pragma HLS STREAM variable=q_ddr depth=64
 #pragma HLS STREAM variable=k_ddr depth=64
 #pragma HLS STREAM variable=q_scales depth=128
@@ -253,11 +256,13 @@ void run_attention_dataflow(
 #pragma HLS STREAM variable=q_payload depth=64
 #pragma HLS STREAM variable=k_payload depth=64
 #pragma HLS STREAM variable=v_raw depth=256
-#pragma HLS STREAM variable=output_pairs28 depth=8
 #pragma HLS STREAM variable=output_pairs24 depth=8
+#pragma HLS STREAM variable=output_pairs16 depth=8
 #pragma HLS STREAM variable=slice_rows depth=32
-#pragma HLS STREAM variable=cross_left depth=32
-#pragma HLS STREAM variable=cross_right depth=32
+#pragma HLS STREAM variable=slice1_left depth=32
+#pragma HLS STREAM variable=slice1_right depth=32
+#pragma HLS STREAM variable=slice4_left depth=32
+#pragma HLS STREAM variable=slice4_right depth=32
 
   read_q_ddr(q, batch, q_ddr);
   read_k_ddr(k, batch, k_ddr);
@@ -284,26 +289,28 @@ void run_attention_dataflow(
   packetize_v(v_raw[2], packet_v2, kValueWordsPerGroup[2], kVPacketId[2]);
   packetize_v(v_raw[3], packet_v3, kValueWordsPerGroup[3], kVPacketId[3]);
   packetize_v(v_raw[4], packet_v4, kValueWordsPerGroup[4], kVPacketId[4]);
+  packetize_v(v_raw[5], packet_v5, kValueWordsPerGroup[5], kVPacketId[5]);
 
-  drain_output_pairs<28>(packet_o0, output_pairs28[0], kOIdToGroup[0]);
-  drain_output_pairs<28>(packet_o1, output_pairs28[1], kOIdToGroup[1]);
-  drain_output_pairs<24>(packet_o2, output_pairs24[0], kOIdToGroup[2]);
-  drain_output_pairs<24>(packet_o3, output_pairs24[1], kOIdToGroup[3]);
-  drain_output_pairs<24>(packet_o4, output_pairs24[2], kOIdToGroup[4]);
-  split_output_pairs<28>(output_pairs28[0], slice_rows[0]);
-  split_output_pairs<28>(output_pairs28[1], slice_rows[1]);
-  split_output_pairs<24>(output_pairs24[0], slice_rows[2]);
-  split_output_pairs<24>(output_pairs24[1], slice_rows[3]);
-  split_output_pairs<24>(output_pairs24[2], slice_rows[4]);
+  drain_output_pairs<24>(packet_o0, output_pairs24[0], kOIdToGroup[0]);
+  drain_output_pairs<24>(packet_o1, output_pairs24[1], kOIdToGroup[1]);
+  drain_output_pairs<16>(packet_o2, output_pairs16[0], kOIdToGroup[2]);
+  drain_output_pairs<24>(packet_o3, output_pairs24[2], kOIdToGroup[3]);
+  drain_output_pairs<24>(packet_o4, output_pairs24[3], kOIdToGroup[4]);
+  drain_output_pairs<16>(packet_o5, output_pairs16[1], kOIdToGroup[5]);
+  split_output_pairs<24>(output_pairs24[0], slice_rows[0]);
+  split_output_pairs<24>(output_pairs24[1], slice_rows[1]);
+  split_output_pairs<16>(output_pairs16[0], slice_rows[2]);
+  split_output_pairs<24>(output_pairs24[2], slice_rows[3]);
+  split_output_pairs<24>(output_pairs24[3], slice_rows[4]);
+  split_output_pairs<16>(output_pairs16[1], slice_rows[5]);
 
-  fanout_slice_rows(slice_rows[1], cross_left[0], cross_right[0]);
-  fanout_slice_rows(slice_rows[2], cross_left[1], cross_right[1]);
-  fanout_slice_rows(slice_rows[3], cross_left[2], cross_right[2]);
+  fanout_slice_rows(slice_rows[1], slice1_left, slice1_right);
+  fanout_slice_rows(slice_rows[4], slice4_left, slice4_right);
 
-  assemble_output_plane<0, 28, 0, 4>(slice_rows[0], cross_left[0], o0, batch);
-  assemble_output_plane<4, 24, 0, 8>(cross_right[0], cross_left[1], o1, batch);
-  assemble_output_plane<8, 16, 0, 16>(cross_right[1], cross_left[2], o2, batch);
-  assemble_output_plane<16, 8, 0, 24>(cross_right[2], slice_rows[4], o3, batch);
+  assemble_output_plane<0, 24, 0, 8>(slice_rows[0], slice1_left, o0, batch);
+  assemble_output_plane<8, 16, 0, 16>(slice1_right, slice_rows[2], o1, batch);
+  assemble_output_plane<0, 24, 0, 8>(slice_rows[3], slice4_left, o2, batch);
+  assemble_output_plane<8, 16, 0, 16>(slice4_right, slice_rows[5], o3, batch);
 }
 
 }  // namespace
@@ -316,10 +323,10 @@ extern "C" void llama3_attention_aie8_packet(
     AxisStream& packet_k0, AxisStream& packet_k1,
     AxisStream& packet_v0, AxisStream& packet_v1,
     AxisStream& packet_v2, AxisStream& packet_v3,
-    AxisStream& packet_v4,
+    AxisStream& packet_v4, AxisStream& packet_v5,
     AxisStream& packet_o0, AxisStream& packet_o1,
     AxisStream& packet_o2, AxisStream& packet_o3,
-    AxisStream& packet_o4) {
+    AxisStream& packet_o4, AxisStream& packet_o5) {
 #pragma HLS INTERFACE m_axi port=q offset=slave bundle=gmem0 max_read_burst_length=64 num_read_outstanding=16
 #pragma HLS INTERFACE m_axi port=k offset=slave bundle=gmem1 max_read_burst_length=64 num_read_outstanding=16
 #pragma HLS INTERFACE m_axi port=v offset=slave bundle=gmem2 max_read_burst_length=64 num_read_outstanding=16
@@ -336,11 +343,13 @@ extern "C" void llama3_attention_aie8_packet(
 #pragma HLS INTERFACE axis port=packet_v2
 #pragma HLS INTERFACE axis port=packet_v3
 #pragma HLS INTERFACE axis port=packet_v4
+#pragma HLS INTERFACE axis port=packet_v5
 #pragma HLS INTERFACE axis port=packet_o0
 #pragma HLS INTERFACE axis port=packet_o1
 #pragma HLS INTERFACE axis port=packet_o2
 #pragma HLS INTERFACE axis port=packet_o3
 #pragma HLS INTERFACE axis port=packet_o4
+#pragma HLS INTERFACE axis port=packet_o5
 #pragma HLS INTERFACE s_axilite port=q bundle=control
 #pragma HLS INTERFACE s_axilite port=k bundle=control
 #pragma HLS INTERFACE s_axilite port=v bundle=control
@@ -358,6 +367,6 @@ extern "C" void llama3_attention_aie8_packet(
         q, k, v, o0, o1, o2, o3, batch,
         packet_q0, packet_q1, packet_k0, packet_k1,
         packet_v0, packet_v1, packet_v2, packet_v3,
-        packet_v4, packet_o0, packet_o1, packet_o2,
-        packet_o3, packet_o4);
+        packet_v4, packet_v5, packet_o0, packet_o1, packet_o2,
+        packet_o3, packet_o4, packet_o5);
 }
