@@ -43,7 +43,7 @@ namespace {
 #define LLAMA3_QK_COMPUTE_LABEL "INT8 x INT8 -> INT32"
 #endif
 #ifndef LLAMA3_AIE_TILES
-#define LLAMA3_AIE_TILES 64
+#define LLAMA3_AIE_TILES 56
 #endif
 #ifndef LLAMA3_AIE_TILE_BUDGET
 #define LLAMA3_AIE_TILE_BUDGET 64
