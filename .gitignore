@@ -7,16 +7,34 @@ _x/
 *.json
 *.csv
 !llama3_attention.xclbin
-/aie/build.x86sim_v20_single_score_2phase_file/
-/aie/build.aiesim_v20_single_score_2phase/
-/build.sim_v20_single_score_2phase/
-/build.check_v20_single_score_2phase/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Build output directories
+/build.*/
+/build/
 /build.hw_v20_single_score_2phase/
-/tests/v20-single-score-2phase-sim-data/
-/build*
-/tests/
-/scripts
-/aiesimulator_*
-/aie/build*
-/aie/x86*
-/aie/*.txt
+/build.check_v20_single_score_2phase/
+/build.sim_v20_single_score_2phase/
+/aie/build.*/
+/aie/Work/
+/aie/Work*/
+/aie/sol.db
+
+# Simulation output and artifacts
+/aiesimulator_output*
+/x86simulator_output*
+/aie/x86simulator_output*
+/aie/aiesimulator_output*
+/aie/packet_*.txt
+/aie/expected.json
+/tests/*-sim-data/
+*.vcd
+*.wdb
+BOOT.BIN
+boot_image.bif
+aie.merged.cdo.bin
+ISS_RPC_SERVER_PORT
+.AIE_SIM_CMD_LINE_OPTIONS
