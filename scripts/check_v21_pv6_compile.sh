@@ -22,13 +22,13 @@ g++ -std=c++17 -O2 -I/s3/Xilinx_Vitis_2022.2/Vitis_HLS/2022.2/include \
 "$BUILD_DIR/pl_transport_tb"
 
 echo "[2/5] Generate, compile and run production-topology x86sim"
-python3 "$ROOT/tests/v20_single_score_2phase_sim.py" generate --dir "$ROOT/aie"
+python3 "$ROOT/tests/v21_pv6_sim.py" generate --dir "$ROOT/aie"
 (cd "$ROOT/aie" && aiecompiler --target=x86sim --platform="$PLATFORM" \
   --include="$ROOT/aie" --include="$XILINX_VITIS_AIETOOLS/include" \
   --workdir="$ROOT/aie/build.x86sim_v21_pv6" --output-archive="$BUILD_DIR/libadf_x86.a" \
   llama3_gqa_8group_packet_sim.cpp) 2>&1 | tee "$BUILD_DIR/aiecompiler_x86.log"
 (cd "$ROOT/aie" && x86simulator --pkg-dir="$ROOT/aie/build.x86sim_v21_pv6") 2>&1 | tee "$BUILD_DIR/x86sim.log"
-python3 "$ROOT/tests/v20_single_score_2phase_sim.py" verify --dir "$ROOT/aie"
+python3 "$ROOT/tests/v21_pv6_sim.py" verify --dir "$ROOT/aie"
 [[ $(grep -c 'V20_SCORE_CACHE.*action=load' "$BUILD_DIR/x86sim.log") -eq 8 ]]
 [[ $(grep -c 'V20_SCORE_CACHE.*action=reuse-no-read' "$BUILD_DIR/x86sim.log") -eq 8 ]]
 [[ $(grep -c 'V20_VALUE_CACHE.*action=load' "$BUILD_DIR/x86sim.log") -eq 48 ]]
