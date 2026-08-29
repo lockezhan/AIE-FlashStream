@@ -1,5 +1,8 @@
 #include "llama3_gqa_group_kernels.hpp"
 #include "llama3_kernel_common.hpp"
+#ifdef __X86SIM__
+#include <cstdio>
+#endif
 
 using namespace llama3_detail;
 
@@ -124,14 +127,25 @@ template <int ValueD, int Instance>
 void llama3_value_kernel_impl(
     input_stream<float>* probability,
     input_stream<uint32>* value, output_window<uint16>* output) {
-  alignas(aie::vector_decl_align) static int16 chess_storage(DM_bankA)
+#ifdef __X86SIM__
+#define LLAMA3_VALUE_TILE_LOCAL thread_local static
+#else
+#define LLAMA3_VALUE_TILE_LOCAL static
+#endif
+  alignas(aie::vector_decl_align) LLAMA3_VALUE_TILE_LOCAL int16 chess_storage(DM_bankA)
       value_cache[kKeys * ValueD];
-  static uint8 phase = 0;
+  LLAMA3_VALUE_TILE_LOCAL uint8 phase = 0;
+#undef LLAMA3_VALUE_TILE_LOCAL
   alignas(aie::vector_decl_align) float probabilities[8 * 8];
   alignas(aie::vector_decl_align) float output_pair[2][ValueD];
   int16* output_ptr = reinterpret_cast<int16*>(output->ptr);
 
   if (phase == 0) pv_value_load<ValueD>(value, value_cache);
+#ifdef __X86SIM__
+  std::printf("V20_VALUE_CACHE instance=%p phase=%u d=%d action=%s\n",
+              static_cast<void*>(&phase), static_cast<unsigned>(phase), ValueD,
+              phase == 0 ? "load" : "reuse-no-read");
+#endif
 
   for (int query = 0; query < kQueriesPerPhase; ++query) {
     for (int row_pair = 0; row_pair < kRows / 2; ++row_pair) {

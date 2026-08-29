@@ -1,0 +1,4 @@
+aiesimulator
+--pkg-dir aie/build.aiesim_v21
+--aiearch-version aie
+--profile

@@ -270,13 +270,13 @@ void run_attention_dataflow(
   assemble_quantized_packets(q_scales[1], q_quantized[1], q_payload[1],
                              2 * kKvHeads);
   assemble_quantized_packets(k_scales[0], k_quantized[0], k_payload[0],
-                             kKvHeads);
+                             kKvHeads / 2);
   assemble_quantized_packets(k_scales[1], k_quantized[1], k_payload[1],
-                             kKvHeads);
-  packetize_q(q_payload[0], packet_q0);
-  packetize_q(q_payload[1], packet_q1);
-  packetize_k(k_payload[0], packet_k0);
-  packetize_k(k_payload[1], packet_k1);
+                             kKvHeads / 2);
+  packetize_q_lane0(q_payload[0], packet_q0);
+  packetize_q_lane1(q_payload[1], packet_q1);
+  packetize_k_lane0(k_payload[0], packet_k0);
+  packetize_k_lane1(k_payload[1], packet_k1);
 
   route_v_bf16(v, batch, v_raw);
   packetize_v(v_raw[0], packet_v0, kValueWordsPerGroup[0], kVPacketId[0]);

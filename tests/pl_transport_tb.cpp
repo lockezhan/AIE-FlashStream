@@ -213,14 +213,54 @@ void verify_output_reorder() {
     if (!axis.empty()) fail("unexpected output packet beat");
 }
 
+void fill_payload(RawStream& payload, int packets) {
+  for (int word = 0; word < packets * kPacketWordsPerHead; ++word)
+    payload.write(ap_uint<128>(word));
+}
+
+void verify_qk_partition_and_schedule() {
+  RawStream q_payload[2];
+  AxisStream q_axis[2];
+  fill_payload(q_payload[0], 2 * kKvHeads);
+  fill_payload(q_payload[1], 2 * kKvHeads);
+  packetize_q_lane0(q_payload[0], q_axis[0]);
+  packetize_q_lane1(q_payload[1], q_axis[1]);
+
+  for (int q_in_group = 0; q_in_group < kQueriesPerKvHead; ++q_in_group) {
+    for (int local_group = 0; local_group < kKvHeads / 2; ++local_group) {
+      read_packet(q_axis[0], kPacketWordsPerHead, local_group);
+      read_packet(q_axis[1], kPacketWordsPerHead, local_group);
+    }
+  }
+  if (!q_payload[0].empty() || !q_payload[1].empty() ||
+      !q_axis[0].empty() || !q_axis[1].empty())
+    fail("Q wave-major packet count mismatch");
+
+  RawStream k_payload[2];
+  AxisStream k_axis[2];
+  fill_payload(k_payload[0], kKvHeads / 2);
+  fill_payload(k_payload[1], kKvHeads / 2);
+  packetize_k_lane0(k_payload[0], k_axis[0]);
+  packetize_k_lane1(k_payload[1], k_axis[1]);
+  for (int local_group = 0; local_group < kKvHeads / 2; ++local_group) {
+    read_packet(k_axis[0], kPacketWordsPerHead, local_group);
+    read_packet(k_axis[1], kPacketWordsPerHead, local_group);
+  }
+  if (!k_payload[0].empty() || !k_payload[1].empty() ||
+      !k_axis[0].empty() || !k_axis[1].empty())
+    fail("K partition packet count mismatch");
+}
+
 }  // namespace
 
 int main() {
   std::vector<DdrWord> value(kKvHeads * kCompactSequence * 4);
   fill_value_ddr(value);
+  verify_qk_partition_and_schedule();
   verify_value_input_transport(value);
   verify_output_reorder();
   std::cout << "PL C-sim PASS: strict 112/96 input and 224/192 output words\n";
+  std::cout << "PL C-sim PASS: Q wave-major 16/lane, K partitioned 4/lane\n";
   std::cout << "PL C-sim PASS: 5 slices -> 4 contiguous 512-bit DDR planes\n";
   return 0;
 }

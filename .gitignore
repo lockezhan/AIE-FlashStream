@@ -7,3 +7,16 @@ _x/
 *.json
 *.csv
 !llama3_attention.xclbin
+/aie/build.x86sim_v20_single_score_2phase_file/
+/aie/build.aiesim_v20_single_score_2phase/
+/build.sim_v20_single_score_2phase/
+/build.check_v20_single_score_2phase/
+/build.hw_v20_single_score_2phase/
+/tests/v20-single-score-2phase-sim-data/
+/build*
+/tests/
+/scripts
+/aiesimulator_*
+/aie/build*
+/aie/x86*
+/aie/*.txt

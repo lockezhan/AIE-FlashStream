@@ -129,9 +129,9 @@ void softmax_head(input_stream<float>* score,
 
 }  // namespace
 
-void llama3_fused_softmax_2lane(
-    input_stream<float>* score_lane0, input_stream<float>* score_lane1,
-    output_stream<float>* probability) {
-  softmax_head(score_lane0, probability);
-  softmax_head(score_lane1, probability);
+void llama3_fused_softmax_1lane_2q(
+    input_stream<float>* score, output_stream<float>* probability) {
+  // The single Score emits two complete query heads per graph invocation.
+  softmax_head(score, probability);
+  softmax_head(score, probability);
 }

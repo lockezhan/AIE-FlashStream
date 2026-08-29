@@ -4,15 +4,10 @@
 
 using namespace adf;
 
-void llama3_score_int8_lane0_1q(input_stream<int32>*,
-                                input_stream<int32>*,
-                                output_stream<float>*);
-void llama3_score_int8_lane1_1q(input_stream<int32>*,
-                                input_stream<int32>*,
-                                output_stream<float>*);
-void llama3_fused_softmax_2lane(input_stream<float>*,
-                                input_stream<float>*,
-                                output_stream<float>*);
+void llama3_score_int8_2q(input_stream<int32>*, input_stream<int32>*,
+                          output_stream<float>*);
+void llama3_fused_softmax_1lane_2q(input_stream<float>*,
+                                   output_stream<float>*);
 void llama3_value_d28_lane0_bf16_2q(
     input_stream<float>*, input_stream<uint32>*, output_window<uint16>*);
 void llama3_value_d28_lane1_bf16_2q(
@@ -26,31 +21,28 @@ void llama3_value_d24_lane4_bf16_2q(
 
 class Llama3GqaGroupGraph : public graph {
  public:
-  port<input> q[2];
-  port<input> k[2];
+  port<input> q;
+  port<input> k;
   port<input> value_slice[5];
   port<output> output_slice[5];
 
-  kernel score[2];
+  kernel score;
   kernel softmax;
   kernel value[5];
 
   Llama3GqaGroupGraph() {
-    score[0] = kernel::create(llama3_score_int8_lane0_1q);
-    score[1] = kernel::create(llama3_score_int8_lane1_1q);
-    source(score[0]) = "llama3_score_int8_lane0_kernel.cpp";
-    source(score[1]) = "llama3_score_int8_lane1_kernel.cpp";
-    for (int lane = 0; lane < 2; ++lane) {
-      runtime<ratio>(score[lane]) = 1;
-      connect<stream>(q[lane], score[lane].in[0]);
-      connect<stream>(k[lane], score[lane].in[1]);
-    }
+    score = kernel::create(llama3_score_int8_2q);
+    source(score) = "llama3_score_int8_2q_kernel.cpp";
+    runtime<ratio>(score) = 1;
+    stack_size(score) = 2048;
+    connect<stream>(q, score.in[0]);
+    connect<stream>(k, score.in[1]);
 
-    softmax = kernel::create(llama3_fused_softmax_2lane);
+    softmax = kernel::create(llama3_fused_softmax_1lane_2q);
     source(softmax) = "llama3_fused_softmax_kernel.cpp";
     runtime<ratio>(softmax) = 1;
-    connect<stream>(score[0].out[0], softmax.in[0]);
-    connect<stream>(score[1].out[0], softmax.in[1]);
+    stack_size(softmax) = 2048;
+    connect<stream>(score.out[0], softmax.in[0]);
 
     value[0] = kernel::create(llama3_value_d28_lane0_bf16_2q);
     value[1] = kernel::create(llama3_value_d28_lane1_bf16_2q);
