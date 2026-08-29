@@ -162,22 +162,22 @@ void llama3_value_kernel_impl(
 
 using namespace value_detail;
 
-void llama3_value_d28_lane0_bf16_2q(
+void llama3_value_d24_lane0_bf16_2q(
     input_stream<float>* probability,
     input_stream<uint32>* value, output_window<uint16>* output) {
-  llama3_value_kernel_impl<28, 0>(probability, value, output);
+  llama3_value_kernel_impl<24, 0>(probability, value, output);
 }
 
-void llama3_value_d28_lane1_bf16_2q(
+void llama3_value_d24_lane1_bf16_2q(
     input_stream<float>* probability,
     input_stream<uint32>* value, output_window<uint16>* output) {
-  llama3_value_kernel_impl<28, 1>(probability, value, output);
+  llama3_value_kernel_impl<24, 1>(probability, value, output);
 }
 
-void llama3_value_d24_lane2_bf16_2q(
+void llama3_value_d16_lane2_bf16_2q(
     input_stream<float>* probability,
     input_stream<uint32>* value, output_window<uint16>* output) {
-  llama3_value_kernel_impl<24, 2>(probability, value, output);
+  llama3_value_kernel_impl<16, 2>(probability, value, output);
 }
 
 void llama3_value_d24_lane3_bf16_2q(
@@ -190,4 +190,10 @@ void llama3_value_d24_lane4_bf16_2q(
     input_stream<float>* probability,
     input_stream<uint32>* value, output_window<uint16>* output) {
   llama3_value_kernel_impl<24, 4>(probability, value, output);
+}
+
+void llama3_value_d16_lane5_bf16_2q(
+    input_stream<float>* probability,
+    input_stream<uint32>* value, output_window<uint16>* output) {
+  llama3_value_kernel_impl<16, 5>(probability, value, output);
 }
