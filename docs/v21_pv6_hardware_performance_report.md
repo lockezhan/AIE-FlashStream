@@ -1,4 +1,8 @@
-# V21 PV6 hardware performance report
+# V21 PV6 implementation evidence
+
+> Paper-facing performance values are maintained in `docs/PERFORMANCE.md`.
+> That page supersedes the earlier three-sample latency wording below with a
+> matched ten-sample B1 Pure-PL/V21 campaign while retaining the same xclbin.
 
 ## Executive result
 
@@ -9,9 +13,10 @@ compute tiles. The PV partition is `24/24/16/24/24/16` at offsets
 `0/24/48/64/88/112`; Q/K scheduling and the two-query, two-phase V20 protocol
 are unchanged.
 
-The routed design meets 300 MHz timing and a cold single request completes in
-approximately 0.482 ms kernel time. Full output verification is functionally
-correct. However, a second invocation without reprogramming the board stalls.
+The routed design meets 300 MHz timing. In the final matched protocol, ten
+independent B1 requests have 0.470387 ms median kernel time and 0.994343 ms
+median H2D+kernel+D2H time. Full output verification is functionally correct.
+However, a second invocation without reprogramming the board stalls.
 Consequently the present artifact supports a paper claim about implementation,
 timing closure, single-request latency, and numerical behavior, but **does not
 yet support a sustained-throughput or warmup-10/runs-100 latency claim**.
@@ -67,11 +72,12 @@ single hardware execution.
 
 ## Measured single-request performance
 
-Three independently observed cold single-request kernel times were 0.479731,
-0.481711, and 0.483979 ms. Their mean is 0.481807 ms, median 0.481711 ms, and
-range 0.479731--0.483979 ms. At the median, the host's attention operation
-count corresponds to 17.958 GFLOP/s. These samples are reported as cold
-single-request observations, not as a steady-state distribution.
+Ten independent reset/reload B1 samples have kernel mean/median
+0.474839/0.470387 ms and range 0.414302--0.519036 ms. H2D+kernel+D2H
+mean/median is 1.002077/0.994343 ms with range 0.918540--1.067933 ms. At the
+kernel median, the Host's operation count corresponds to 18.390712 effective
+GFLOP/s. These are independent cold observations, not a steady-state
+distribution.
 
 ## Numerical accuracy
 
@@ -104,7 +110,8 @@ must not be presented as steady-state V21 measurements.
 > Score, 8 Softmax, and 48 PV kernels. The 24/24/16/24/24/16 decomposition
 > reduces the maximum per-PV dimension work from seven to six four-dimensional
 > quads. On VCK5000, the design routes at 300 MHz with 0.119 ns setup slack and
-> completes an isolated B1-S32 request in approximately 0.482 ms. Full-model
+> completes an isolated B1-S32 request in 0.470 ms median kernel time and
+> 0.994 ms median H2D+kernel+D2H time. Full-output
 > verification is functionally correct (mean absolute error 3.73e-4), although
 > the current artifact requires further work to support repeated invocations.
 
@@ -122,6 +129,8 @@ scripts/rebuild_v21_pv6.sh
 scripts/benchmark_v21_pv6.sh
 ```
 
-Raw summary: `results/v21_pv6/single_run_summary.txt`. The host now identifies
+Final matched evidence: `results/matched_b1_pure_pl_v1_vs_v21_pv6_20260830/`.
+The earlier raw summary remains at `results/v21_pv6/single_run_summary.txt`.
+The host identifies
 the design as `Llama3-AIE-FlashStream V21 PV6`, host version `21.0.0`, and
 reports `64 / 64` AIE tiles, fixing the stale V20 `56 / 64` display.

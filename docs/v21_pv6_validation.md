@@ -14,4 +14,6 @@
 - [x] AIE hardware compile and exact active-tile/placement audit
 - [x] PL `v++ -c`, structural warning, resource, and Fmax audit
 - [x] full link timing and single-request board liveness/correctness
-- [ ] repeated board invocation: run 2 currently stalls (20-second gate)
+- [x] 10/10 independent reset/reload B1 board samples
+- [ ] repeated board invocation: run 2 currently stalls (120-second gate)
+- [ ] B8 single launch: timed out at 120 seconds
