@@ -6,7 +6,7 @@
 *.xsa
 *.ltx
 *.xclbin
-!prebuilt/vck5000/v21_pv6/llama3_attention_v21_pv6.xclbin
+!prebuilt/vck5000/llama3_attention.xclbin
 
 # Tool logs and temporary reports (selected benchmark logs are force-tracked)
 *.log

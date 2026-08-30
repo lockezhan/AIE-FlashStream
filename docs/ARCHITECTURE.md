@@ -1,6 +1,6 @@
-# Final V21 PV6 architecture
+# AIE-FlashStream Architecture
 
-This document describes only the frozen release architecture.
+This document describes the accelerator hardware architecture.
 
 ## 1. Workload definition
 

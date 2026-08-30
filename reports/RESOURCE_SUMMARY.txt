@@ -1,4 +1,4 @@
-V21 PV6 implementation resource summary
+AIE-FlashStream implementation resource summary
 PL registers (kernel synthesis): 99,131
 PL CLB LUT (kernel synthesis): 62,685
 Block RAM tiles: 186.5
@@ -6,4 +6,4 @@ DSP58: 24
 URAM: 0
 AIE compute tiles: 64
 Physical PLIO: 16
-Source: docs/v21_pv6_hardware_performance_report.md
+Source: docs/PERFORMANCE.md

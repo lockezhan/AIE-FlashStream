@@ -1,4 +1,4 @@
-# V21 PV6 validation summary
+# AIE-FlashStream Validation Summary
 
 | Gate | Result |
 |---|---|
@@ -21,5 +21,4 @@ The supported paper protocol is ten independent B1 launches, each preceded by
 a board reset and xclbin reload. The results establish isolated-request
 latency and functional correctness, not sustained throughput.
 
-Sources: `docs/v21_pv6_hardware_performance_report.md`,
-`docs/PERFORMANCE.md`, and `results/final/comparison_summary.json`.
+Sources: `docs/PERFORMANCE.md` and `results/final/comparison_summary.json`.

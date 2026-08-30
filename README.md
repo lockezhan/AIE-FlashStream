@@ -38,7 +38,7 @@ stateful two-phase KV reuse and balanced six-way PV parallelization.**
 
 ## Performance Benchmark (Matched B=1 vs Pure-PL Baseline)
 
-| Metric | Pure-PL V1 Baseline | AIE-FlashStream (Final V21) | Improvement / Speedup |
+| Metric | Pure-PL Baseline | AIE-FlashStream | Speedup / Improvement |
 |---|---:|---:|---:|
 | **AIE Compute Tiles** | 0 | **64 tiles** | 8 Score + 8 Softmax + 48 PV |
 | **Kernel Latency (median)** | 63.910 ms | **0.470 ms** | **135.87×** (99.26% lower) |
@@ -53,7 +53,7 @@ stateful two-phase KV reuse and balanced six-way PV parallelization.**
 
 > The published performance numbers follow the matched isolated-request protocol described in [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md).
 
-## Final Architecture
+## Architecture
 
 The accelerator targets Llama3-8B causal GQA with `S=32`, `HQ=32`, `HKV=8`, `D=128`, where four query heads share each KV head (8 GQA groups).
 
@@ -80,11 +80,11 @@ The accelerator targets Llama3-8B causal GQA with `S=32`, `HQ=32`, `HKV=8`, `D=1
 
 - `aie/`: AIE dataflow graph, kernel implementations, and tile placement mapping
 - `pl/`: HLS quantization, packet transport, and 4-plane output reconstruction
-- `link/eight_groups_packet_pv6.cfg`: PL/AIE streaming connectivity configuration
+- `link/eight_groups_packet.cfg`: PL/AIE streaming connectivity configuration
 - `host/`: XRT host runtime, verification harness, and benchmark harness
 - `scripts/`: Compile, rebuild, and reproducible benchmark entry points
 - `tests/`: Reference oracle, reciprocal LUT verification, and PL transport C-sim
-- `prebuilt/vck5000/v21_pv6/`: Tested, SHA-pinned final hardware binary (`.xclbin`)
+- `prebuilt/vck5000/`: Tested, SHA-pinned hardware binary (`.xclbin`)
 - `docs/`: Architecture, reproducibility, and performance sources of truth
 - `reports/`: Hardware HLS, timing, resource, and validation summaries
 - `results/`: Matched raw benchmark logs, CSVs, and JSON evidence
@@ -97,14 +97,14 @@ export XILINX_XRT=/opt/xilinx/xrt
 make
 
 # 2. Verify Prebuilt Hardware Artifact
-cd prebuilt/vck5000/v21_pv6
+cd prebuilt/vck5000
 sha256sum -c SHA256SUMS
-cd ../../..
+cd ../..
 
 # 3. Run Physical Board Verification
 /opt/xilinx/xrt/bin/xbutil reset --device 0000:af:00.1
 ./host/llama3_attention_host.exe \
-  --xclbin prebuilt/vck5000/v21_pv6/llama3_attention_v21_pv6.xclbin \
+  --xclbin prebuilt/vck5000/llama3_attention.xclbin \
   --batch 1 --warmup 0 --runs 1 --seed 7 --verify --profile
 ```
 

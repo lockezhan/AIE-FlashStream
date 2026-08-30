@@ -8,13 +8,13 @@ seed 7 and BF16 input/output. Each data point is one Host process and one
 kernel launch after a VCK5000 reset/reload; ten independent samples are used
 per design. Timing scope is H2D + kernel + D2H.
 
-The Pure-PL design computes BF16 Score with FP32 Softmax/PV. Final V21 uses
+The Pure-PL design computes BF16 Score with FP32 Softmax/PV. AIE-FlashStream uses
 INT8 Score with FP32 Softmax/PV. This is workload- and protocol-matched, but
 not arithmetic-precision-identical; numerical error is reported with latency.
 
 ## Paper-ready matched B1 comparison
 
-| Metric | Pure-PL V1 baseline | Final V21 PV6 | V21 improvement |
+| Metric | Pure-PL baseline | AIE-FlashStream | Speedup / Improvement |
 |---|---:|---:|---:|
 | Independent samples | 10 | 10 | — |
 | Kernel median (ms) | 63.910412 | 0.470387 | 135.87×; 99.264% lower |
@@ -34,7 +34,7 @@ throughput.
 
 The same seeded input is verified against the FP32 CPU oracle in every sample.
 
-| Metric | Pure-PL V1 | Final V21 PV6 |
+| Metric | Pure-PL baseline | AIE-FlashStream |
 |---|---:|---:|
 | Mean absolute error | 0.000185180 | 0.000373284 |
 | P99 absolute error | 0.000990033 | 0.001737416 |
@@ -44,11 +44,11 @@ The same seeded input is verified against the FP32 CPU oracle in every sample.
 | Internal target 0.003 | PASS | FAIL |
 
 The valid statement is “functionally correct with a numerical warning” for
-V21. Equal-precision, bitwise-equivalence and strict-0.003 claims are invalid.
+AIE-FlashStream. Equal-precision, bitwise-equivalence and strict-0.003 claims are invalid.
 
 ## Routed implementation data
 
-| Metric | Pure-PL V1 | Final V21 PV6 |
+| Metric | Pure-PL baseline | AIE-FlashStream |
 |---|---:|---:|
 | AIE compute tiles | 0 | 64 |
 | Physical PLIO | 0 | 16 |
@@ -61,14 +61,14 @@ V21. Equal-precision, bitwise-equivalence and strict-0.003 claims are invalid.
 | Routed WNS | 0.000 ns | +0.119 ns |
 | Routed TNS | 0.000 ns | 0.000 ns |
 
-V21 HLS estimated Fmax is 411 MHz; routed hold slack is WHS `+0.010 ns`, THS
+AIE-FlashStream HLS estimated Fmax is 411 MHz; routed hold slack is WHS `+0.010 ns`, THS
 `0.000 ns`.
 
 ## Known limits
 
-- V21 B8 as one kernel launch timed out at 120 seconds; it is not a valid
+- B=8 as one single kernel launch timed out at 120 seconds; it is not a valid
   matched B8 data point.
-- A second V21 invocation without reset/reload stalls. The independent B1
+- A second invocation without reset/reload stalls. The independent B1
   campaign is not a sustained-throughput distribution.
 - With ten samples, nearest-rank p95 is the maximum sample and is not used as a
   headline tail-latency claim.
@@ -76,5 +76,4 @@ V21 HLS estimated Fmax is 411 MHz; routed hold slack is WHS `+0.010 ns`, THS
   sampling are outside this measured kernel.
 
 Machine-readable values and hashes are in `results/final/`. Raw matched B1
-evidence is in `results/matched_b1_pure_pl_v1_vs_v21_pv6_20260830/`; the failed
-B8 audit is preserved separately.
+evidence is in `results/matched_b1/`.

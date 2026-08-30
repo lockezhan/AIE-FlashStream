@@ -8,7 +8,7 @@ measurements remain in their experiment directories.
 - `comparison_table.csv`: flat paper-table data
 - `SHA256SUMS`: hashes for both summary files
 
-The official baseline is Pure-PL V1. The official proposed design is final V21
-PV6. The comparison is matched at B1 and uses ten independent reset/reload
+The baseline is Pure-PL. The proposed design is AIE-FlashStream.
+The comparison is matched at B1 and uses ten independent reset/reload
 samples per design. It covers one causal-GQA attention workload, not a complete
 Llama3 model.

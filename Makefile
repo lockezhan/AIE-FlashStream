@@ -1,7 +1,7 @@
 XILINX_XRT ?= /opt/xilinx/xrt
 VITIS_ROOT ?= /s3/Xilinx_Vitis_2022.2/Vitis/2022.2
 HOST_EXE := host/llama3_attention_host.exe
-XCLBIN := prebuilt/vck5000/v21_pv6/llama3_attention_v21_pv6.xclbin
+XCLBIN ?= prebuilt/vck5000/llama3_attention.xclbin
 
 all: $(HOST_EXE)
 

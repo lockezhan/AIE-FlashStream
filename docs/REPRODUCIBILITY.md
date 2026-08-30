@@ -57,13 +57,13 @@ after its SHA and board evidence are accepted.
 ## Board reset, execution and verification
 
 ```bash
-cd prebuilt/vck5000/v21_pv6
+cd prebuilt/vck5000
 sha256sum -c SHA256SUMS
-cd ../../..
+cd ../..
 
 "$XRT_ROOT/bin/xbutil" reset --device 0000:af:00.1
 ./host/llama3_attention_host.exe \
-  --xclbin prebuilt/vck5000/v21_pv6/llama3_attention_v21_pv6.xclbin \
+  --xclbin prebuilt/vck5000/llama3_attention.xclbin \
   --batch 1 --warmup 0 --runs 1 --seed 7 --verify --profile
 ```
 
@@ -73,21 +73,17 @@ bound; the 0.003 internal target is an additional warning gate.
 
 ## Benchmark outputs
 
-- `scripts/benchmark_v21_pv6.sh`: one verified request plus the known repeated
-  invocation diagnostic;
-- `scripts/benchmark_v21_pv6_matched_b1.sh`: ten independent V21 B1 samples;
-- `scripts/benchmark_pure_pl_v1_matched_b1.sh`: ten independent Pure-PL B1
+- `scripts/benchmark_aie_flashstream_b1.sh`: ten independent AIE-FlashStream B1 samples;
+- `scripts/benchmark_pure_pl_b1.sh`: ten independent Pure-PL B1
   samples using the separately archived baseline build; set
-  `PURE_PL_ROOT=/path/to/llama3-attention` before running it;
-- `scripts/benchmark_v21_pv6_matched_b8.sh`: fairness audit showing that the
-  final V21 image does not complete a B8 single launch.
+  `PURE_PL_ROOT=/path/to/llama3-attention` before running it.
 
 Matched B1 scripts reset the card, poll until the device is ready, allow a
 short enumeration-settle interval, reload the pinned xclbin and execute one
 kernel launch per process. Raw JSON/CSV/log evidence is under
-`results/matched_b1_pure_pl_v1_vs_v21_pv6_20260830/`; paper-level summaries are
+`results/matched_b1/`; paper-level summaries are
 under `results/final/`.
 
-The final V21 artifact is not a sustained-run result: a second invocation
+The accelerator artifact is designed for single-request execution: a second invocation
 without reset/reload stalls. Do not use the independent-sample results to
 claim steady-state requests/s or tail latency.

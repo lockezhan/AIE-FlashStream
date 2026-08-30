@@ -2,16 +2,14 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-SOURCE_ROOT="${PURE_PL_ROOT:?set PURE_PL_ROOT to the Pure-PL baseline source/build tree}"
-XCLBIN="${1:-$SOURCE_ROOT/build.hw_v1_baseline/llama3_attention_v1.xclbin}"
-HOST="${PURE_PL_HOST:-$SOURCE_ROOT/build.hw_v1_baseline/llama3_attention_host_v1_baseline.exe}"
-RESULT_DIR="${2:-$ROOT/results/matched_b1_pure_pl_v1_vs_v21_pv6_20260830/pure_pl_v1}"
+XCLBIN="${1:-$ROOT/prebuilt/vck5000/llama3_attention.xclbin}"
+RESULT_DIR="${2:-$ROOT/results/matched_b1/aie_flashstream}"
 SAMPLES="${3:-10}"
+HOST="$ROOT/host/llama3_attention_host.exe"
 XRT_ROOT="${XRT_ROOT:-/opt/xilinx/xrt}"
 XBUTIL="$XRT_ROOT/bin/xbutil"
 BDF="${VCK5000_BDF:-0000:af:00.1}"
-EXPECTED_XCLBIN_SHA="15b01daedc8d6ba497eaeb2644b299d9bc46c6069d06580db8025fe01cce9b2c"
-EXPECTED_HOST_SHA="47b2b63547794a422865b12f5961cd8bc87cd97978b59f28510e1f009cc6f12e"
+EXPECTED_XCLBIN_SHA="bff430b2b827c72469e5b147027786de1cf98a5f5ce587910f04590547d08b58"
 
 [[ -f "$XCLBIN" ]] || { echo "missing XCLBIN: $XCLBIN" >&2; exit 2; }
 [[ -x "$HOST" ]] || { echo "missing Host: $HOST" >&2; exit 2; }
@@ -22,10 +20,7 @@ mkdir -p "$RESULT_DIR"
 xclbin_sha=$(sha256sum "$XCLBIN" | awk '{print $1}')
 host_sha=$(sha256sum "$HOST" | awk '{print $1}')
 [[ "$xclbin_sha" == "$EXPECTED_XCLBIN_SHA" ]] || {
-  echo "refusing unexpected pure-PL XCLBIN: $xclbin_sha" >&2; exit 3;
-}
-[[ "$host_sha" == "$EXPECTED_HOST_SHA" ]] || {
-  echo "refusing unexpected pure-PL Host: $host_sha" >&2; exit 3;
+  echo "refusing unexpected XCLBIN: $xclbin_sha" >&2; exit 3;
 }
 
 {
@@ -56,7 +51,7 @@ for sample in $(seq 1 "$SAMPLES"); do
   done
   [[ "$ready" -eq 1 ]] || { echo "[$tag] device did not become ready" >&2; exit 4; }
   sleep 2
-  echo "[$tag] running one independent pure-PL B1 launch"
+  echo "[$tag] running one independent B1 launch"
   timeout 120s "$HOST" --xclbin "$XCLBIN" --batch 1 --warmup 0 --runs 1 \
     --seed 7 --verify --profile \
     --output-json "$RESULT_DIR/${tag}.json" \
@@ -65,4 +60,5 @@ for sample in $(seq 1 "$SAMPLES"); do
   grep -E 'run=1|PASS|FAIL|p50|Mean abs|Max abs' "$RESULT_DIR/${tag}.log" || true
 done
 
-echo "Matched pure-PL B1 evidence: $RESULT_DIR"
+(cd "$RESULT_DIR" && sha256sum experiment.env sample_*.csv sample_*.json sample_*.log sample_*_reset.log > SHA256SUMS)
+echo "AIE-FlashStream matched B1 campaign completed in $RESULT_DIR"
