@@ -1,0 +1,92 @@
+[peer_experiment]
+timestamp=2026-08-30 13:06:40 +0800
+scenario=V19_proposed_same_day_peer_B8_S32_10run
+implementation=PL_plus_64_AIE
+host_executable=build.hw_v19/llama3_attention_host_v19.exe
+xclbin_path=build.hw_v19/llama3_aie8_v19_rmax_s32.xclbin
+batch=8
+sequence_length=32
+warmup=5
+measured_runs=10
+seed=7
+verification=enabled
+timing_scope=H2D+kernel+D2H
+final_state=running
+733b41030fe22d439e033145f53f15a75a0280ba554267ac553fe48343b55581  build.hw_v19/llama3_attention_host_v19.exe
+1022984139d8e79aa99a5c4ebafd3d0d5eeae4e341d89552b3f1b2adcf1b522f  build.hw_v19/llama3_aie8_v19_rmax_s32.xclbin
+run=1 h2d_ms=0.591886 kernel_ms=3.974819 d2h_ms=0.453470 e2e_ms=5.020175
+run=2 h2d_ms=0.622392 kernel_ms=3.972443 d2h_ms=0.470481 e2e_ms=5.065316
+run=3 h2d_ms=0.616085 kernel_ms=3.975724 d2h_ms=0.472422 e2e_ms=5.064231
+run=4 h2d_ms=0.630405 kernel_ms=3.974514 d2h_ms=0.489585 e2e_ms=5.094504
+run=5 h2d_ms=0.630788 kernel_ms=3.974774 d2h_ms=0.489953 e2e_ms=5.095515
+run=6 h2d_ms=0.658272 kernel_ms=3.976983 d2h_ms=0.563752 e2e_ms=5.199007
+run=7 h2d_ms=0.645479 kernel_ms=3.990473 d2h_ms=0.502418 e2e_ms=5.138370
+run=8 h2d_ms=0.642494 kernel_ms=4.004815 d2h_ms=0.493398 e2e_ms=5.140707
+run=9 h2d_ms=0.638647 kernel_ms=4.089277 d2h_ms=0.512024 e2e_ms=5.239948
+run=10 h2d_ms=0.665499 kernel_ms=3.960921 d2h_ms=0.617617 e2e_ms=5.244037
+============================================================
+ FPT'26 Track B - Llama3-8B GQA Attention Accelerator
+============================================================
+
+[Hardware]
+  Platform               : AMD Versal VCK5000
+  PL Frequency           : 300 MHz
+  AIE Compute Tiles      : 64 / 64
+  Kernel                 : llama3_aie8_v18_s32
+  Device BDF             : 0000:af:00.1
+  Device Name            : xilinx_vck5000_gen4x8_qdma_base_2
+  XRT Version            : 2.15.225
+
+[Workload]
+  Batch Size             : 8
+  Sequence Length        : 32
+  Query / KV Heads       : 32 / 8 (GQA 4:1)
+  Head Dimension         : 128
+  Input / Output         : BF16 / BF16
+  QK Compute             : INT8 x INT8 -> INT32
+  Softmax / PV           : FP32
+
+[Execution]
+  Warmup Runs            : 5
+  Measured Runs          : 10
+  Random Seed            : 7
+
+[Latency]
+  H2D p50                : 0.630788 ms
+  Kernel p50             : 3.974819 ms
+  Kernel p95             : 4.089277 ms
+  D2H p50                : 0.489953 ms
+  End-to-End p50         : 5.095515 ms
+  End-to-End p95         : 5.244037 ms
+  Kernel / Request       : 0.496852 ms
+  E2E / Request          : 0.636939 ms
+
+[Throughput]
+  Kernel Throughput      : 17.411111 GFLOPS
+  E2E Throughput         : 13.581751 GFLOPS
+  Requests / Second      : 1570.008
+  Tokens / Second        : 50240.260
+
+[Accuracy]
+  Mean Abs Error         : 0.000312
+  P99 Abs Error          : 0.001427
+  P99.9 Abs Error        : 0.002088
+  Max Abs Error          : 0.003971
+  Worst Coordinate       : batch=1 head=10 row=2 dim=70
+  Reference / Hardware   : 0.300717 / 0.304688
+
+[Verification]
+  Functional Check       : PASS
+  Internal 0.003 Limit   : FAIL
+  Final Status           : FUNCTIONALLY CORRECT (WARNING)
+
+[Build]
+  Design / Host          : V19-RMAX-S32 / 1.0.0-v19
+  Git Commit             : N/A
+  Host Build Time        : Aug  7 2026 21:46:24
+  xclbin                 : llama3_aie8_v19_rmax_s32.xclbin
+  xclbin SHA256          : 1022984139d8e79aa99a5c4ebafd3d0d5eeae4e341d89552b3f1b2adcf1b522f
+
+============================================================
+exit_code=0
+final_state=completed

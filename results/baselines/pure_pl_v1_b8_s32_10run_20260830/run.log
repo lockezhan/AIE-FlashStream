@@ -1,0 +1,123 @@
+[experiment]
+timestamp=2026-08-30 13:06:03 +0800
+scenario=V1_pure_PL_BF16_baseline_board_10run
+implementation=pure_PL_0_AIE
+platform=VCK5000
+host_executable=build.hw_v1_baseline/llama3_attention_host_v1_baseline.exe
+xclbin_path=build.hw_v1_baseline/llama3_attention_v1.xclbin
+batch=8
+sequence_length=32
+warmup=5
+measured_runs=10
+seed=7
+verification=enabled
+timing_scope=H2D+kernel+D2H
+final_state=running
+output_json=build.hw_v1_baseline/perf_v1_pl_baseline_b8_s32_10run_20260830_130603/v1_pl_baseline_b8_s32_w5_r10_seed7.json
+output_csv=build.hw_v1_baseline/perf_v1_pl_baseline_b8_s32_10run_20260830_130603/v1_pl_baseline_b8_s32_w5_r10_seed7.csv
+47b2b63547794a422865b12f5961cd8bc87cd97978b59f28510e1f009cc6f12e  build.hw_v1_baseline/llama3_attention_host_v1_baseline.exe
+15b01daedc8d6ba497eaeb2644b299d9bc46c6069d06580db8025fe01cce9b2c  build.hw_v1_baseline/llama3_attention_v1.xclbin
+System Configuration
+  OS Name              : Linux
+  Release              : 5.4.0-216-generic
+  Version              : #236-Ubuntu SMP Fri Apr 11 19:53:21 UTC 2025
+  Machine              : x86_64
+  CPU Cores            : 80
+  Memory               : 128564 MB
+  Distribution         : Ubuntu 20.04.6 LTS
+  GLIBC                : 2.31
+  Model                : X11DPi-N(T)
+
+XRT
+  Version              : 2.15.225
+  Branch               : 2023.1
+  Hash                 : adf27adb3cfadc6e4c41d6db814159f1329b24f3
+  Hash Date            : 2023-05-03 10:18:14
+  XOCL                 : 2.15.225, adf27adb3cfadc6e4c41d6db814159f1329b24f3
+  XCLMGMT              : 2.15.225, adf27adb3cfadc6e4c41d6db814159f1329b24f3
+
+Devices present
+BDF             :  Shell                              Platform UUID                         Device ID       Device Ready*  
+---------------------------------------------------------------------------------------------------------------------------
+[0000:af:00.1]  :  xilinx_vck5000_gen4x8_qdma_base_2  05DCA096-76CB-730B-8D19-EC1192FBAE3F  user(inst=128)  Yes            
+
+
+* Devices that are not ready will have reduced functionality when using XRT tools
+[command]
+./build.hw_v1_baseline/llama3_attention_host_v1_baseline.exe --xclbin build.hw_v1_baseline/llama3_attention_v1.xclbin --batch 8 --warmup 5 --runs 10 --seed 7 --verify --profile --output-json build.hw_v1_baseline/perf_v1_pl_baseline_b8_s32_10run_20260830_130603/v1_pl_baseline_b8_s32_w5_r10_seed7.json --output-csv build.hw_v1_baseline/perf_v1_pl_baseline_b8_s32_10run_20260830_130603/v1_pl_baseline_b8_s32_w5_r10_seed7.csv
+run=1 h2d_ms=0.669375 kernel_ms=509.903364 d2h_ms=0.436047 e2e_ms=511.008786
+run=2 h2d_ms=0.665470 kernel_ms=509.954568 d2h_ms=0.437165 e2e_ms=511.057203
+run=3 h2d_ms=0.667289 kernel_ms=509.937429 d2h_ms=0.434691 e2e_ms=511.039409
+run=4 h2d_ms=0.674072 kernel_ms=509.929300 d2h_ms=0.438981 e2e_ms=511.042353
+run=5 h2d_ms=0.664685 kernel_ms=509.942809 d2h_ms=0.436305 e2e_ms=511.043799
+run=6 h2d_ms=0.670583 kernel_ms=509.893796 d2h_ms=0.437888 e2e_ms=511.002267
+run=7 h2d_ms=0.669439 kernel_ms=509.942398 d2h_ms=0.439698 e2e_ms=511.051535
+run=8 h2d_ms=0.667291 kernel_ms=509.945798 d2h_ms=0.435512 e2e_ms=511.048601
+run=9 h2d_ms=0.665604 kernel_ms=509.945094 d2h_ms=0.440802 e2e_ms=511.051500
+run=10 h2d_ms=0.669702 kernel_ms=509.884662 d2h_ms=0.440967 e2e_ms=510.995331
+============================================================
+ FPT'26 Track B - Llama3-8B GQA Attention Accelerator
+============================================================
+
+[Hardware]
+  Platform               : AMD Versal VCK5000
+  PL Frequency           : 300 MHz
+  AIE Compute Tiles      : 0 / 64
+  Kernel                 : llama3_attention
+  Device BDF             : 0000:af:00.1
+  Device Name            : xilinx_vck5000_gen4x8_qdma_base_2
+  XRT Version            : 2.15.225
+
+[Workload]
+  Batch Size             : 8
+  Sequence Length        : 32
+  Query / KV Heads       : 32 / 8 (GQA 4:1)
+  Head Dimension         : 128
+  Input / Output         : BF16 / BF16
+  QK Compute             : BF16 x BF16 -> FP32
+  Softmax / PV           : FP32
+
+[Execution]
+  Warmup Runs            : 5
+  Measured Runs          : 10
+  Random Seed            : 7
+
+[Latency]
+  H2D p50                : 0.667291 ms
+  Kernel p50             : 509.937429 ms
+  Kernel p95             : 509.954568 ms
+  D2H p50                : 0.437165 ms
+  End-to-End p50         : 511.042353 ms
+  End-to-End p95         : 511.057203 ms
+  Kernel / Request       : 63.742179 ms
+  E2E / Request          : 63.880294 ms
+
+[Throughput]
+  Kernel Throughput      : 0.135715 GFLOPS
+  E2E Throughput         : 0.135421 GFLOPS
+  Requests / Second      : 15.654
+  Tokens / Second        : 500.937
+
+[Accuracy]
+  Mean Abs Error         : 0.000193
+  P99 Abs Error          : 0.001065
+  P99.9 Abs Error        : 0.001862
+  Max Abs Error          : 0.001953
+  Worst Coordinate       : batch=1 head=22 row=3 dim=49
+  Reference / Hardware   : -0.513672 / -0.511719
+
+[Verification]
+  Functional Check       : PASS
+  Internal 0.003 Limit   : PASS
+  Final Status           : FUNCTIONALLY CORRECT
+
+[Build]
+  Design / Host          : BF16-PL-V1-BASELINE / 1.0.0-v1-baseline
+  Git Commit             : N/A
+  Host Build Time        : Aug  7 2026 21:46:21
+  xclbin                 : llama3_attention_v1.xclbin
+  xclbin SHA256          : 15b01daedc8d6ba497eaeb2644b299d9bc46c6069d06580db8025fe01cce9b2c
+
+============================================================
+exit_code=0
+final_state=completed
