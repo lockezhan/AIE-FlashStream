@@ -110,27 +110,6 @@ cd ../../..
 
 For detailed guides, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/PERFORMANCE.md](docs/PERFORMANCE.md), [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md), [BUILD.md](BUILD.md), and [RUN.md](RUN.md).
 
-## Paper
-
-```text
-AIE-FlashStream: GQA-Aware Resource Rebalancing for LLM Attention on Versal AI Engines
-Wenbo Zhang, Yan Zhang, and Lingjie Wu
-IEEE International Conference on Field-Programmable Technology (FPT), 2026
-```
-
-## Citation
-
-If you use AIE-FlashStream in your research, please cite our paper:
-
-```bibtex
-@inproceedings{zhang2026aieflashstream,
-  title     = {AIE-FlashStream: GQA-Aware Resource Rebalancing for LLM Attention on Versal AI Engines},
-  author    = {Zhang, Wenbo and Zhang, Yan and Wu, Lingjie},
-  booktitle = {IEEE International Conference on Field-Programmable Technology (FPT)},
-  year      = {2026}
-}
-```
-
 ## License
 
 This project is licensed under the Apache License, Version 2.0 - see the [LICENSE](LICENSE) file for details.
