@@ -1,0 +1,8 @@
+V21 PV6 routed timing summary
+Target PL frequency: 300 MHz
+Routed WNS: +0.119 ns
+Routed TNS: 0.000 ns
+Routed WHS: +0.010 ns
+Routed THS: 0.000 ns
+All user timing constraints met: yes
+Source: docs/v21_pv6_hardware_performance_report.md
