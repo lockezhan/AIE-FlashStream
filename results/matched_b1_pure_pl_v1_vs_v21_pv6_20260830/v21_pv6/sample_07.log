@@ -1,0 +1,64 @@
+run=1 h2d_ms=0.296641 kernel_ms=0.519036 d2h_ms=0.252256 e2e_ms=1.067933
+============================================================
+ AIE-FlashStream - Llama3-8B GQA Attention Accelerator
+============================================================
+
+[Hardware]
+  Platform               : AMD Versal VCK5000
+  PL Frequency           : 300 MHz
+  AIE Compute Tiles      : 64 / 64
+  Kernel                 : llama3_attention
+  Device BDF             : 0000:af:00.1
+  Device Name            : xilinx_vck5000_gen4x8_qdma_base_2
+  XRT Version            : 2.15.225
+
+[Workload]
+  Batch Size             : 1
+  Sequence Length        : 32
+  Query / KV Heads       : 32 / 8 (GQA 4:1)
+  Head Dimension         : 128
+  Input / Output         : BF16 / BF16
+  QK Compute             : INT8 x INT8 -> INT32
+  Softmax / PV           : FP32
+
+[Execution]
+  Warmup Runs            : 0
+  Measured Runs          : 1
+  Random Seed            : 7
+
+[Latency]
+  H2D p50                : 0.296641 ms
+  Kernel p50             : 0.519036 ms
+  Kernel p95             : 0.519036 ms
+  D2H p50                : 0.252256 ms
+  End-to-End p50         : 1.067933 ms
+  End-to-End p95         : 1.067933 ms
+  Kernel / Request       : 0.519036 ms
+  E2E / Request          : 1.067933 ms
+
+[Throughput]
+  Kernel Throughput      : 16.666960 GFLOPS
+  E2E Throughput         : 8.100463 GFLOPS
+  Requests / Second      : 936.388
+  Tokens / Second        : 29964.427
+
+[Accuracy]
+  Mean Abs Error         : 0.000373
+  P99 Abs Error          : 0.001737
+  P99.9 Abs Error        : 0.002876
+  Max Abs Error          : 0.004983
+  Worst Coordinate       : batch=0 head=1 row=3 dim=38
+  Reference / Hardware   : 0.340921 / 0.335938
+
+[Verification]
+  Functional Check       : PASS
+  Internal 0.003 Limit   : FAIL
+  Final Status           : FUNCTIONALLY CORRECT (WARNING)
+
+[Build]
+  Design / Host          : Llama3-AIE-FlashStream V21 PV6 / 21.0.0
+  Host Build Time        : Aug 29 2026 23:21:58
+  xclbin                 : llama3_attention_v21_pv6.xclbin
+  xclbin SHA256          : bff430b2b827c72469e5b147027786de1cf98a5f5ce587910f04590547d08b58
+
+============================================================

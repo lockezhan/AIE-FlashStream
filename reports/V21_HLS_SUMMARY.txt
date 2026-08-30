@@ -1,0 +1,7 @@
+V21 PV6 PL HLS synthesis summary
+Target PL frequency: 300 MHz
+HLS estimated Fmax: 411 MHz
+Loop II constraints: satisfied
+AIE compute tiles: 64
+Physical PLIO: 16 (2 Q + 2 K + 6 V + 6 O)
+Source: docs/v21_pv6_hardware_performance_report.md

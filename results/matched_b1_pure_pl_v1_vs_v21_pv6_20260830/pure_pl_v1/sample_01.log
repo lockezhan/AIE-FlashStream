@@ -1,0 +1,65 @@
+run=1 h2d_ms=0.200948 kernel_ms=63.896941 d2h_ms=0.184777 e2e_ms=64.282666
+============================================================
+ FPT'26 Track B - Llama3-8B GQA Attention Accelerator
+============================================================
+
+[Hardware]
+  Platform               : AMD Versal VCK5000
+  PL Frequency           : 300 MHz
+  AIE Compute Tiles      : 0 / 64
+  Kernel                 : llama3_attention
+  Device BDF             : 0000:af:00.1
+  Device Name            : xilinx_vck5000_gen4x8_qdma_base_2
+  XRT Version            : 2.15.225
+
+[Workload]
+  Batch Size             : 1
+  Sequence Length        : 32
+  Query / KV Heads       : 32 / 8 (GQA 4:1)
+  Head Dimension         : 128
+  Input / Output         : BF16 / BF16
+  QK Compute             : BF16 x BF16 -> FP32
+  Softmax / PV           : FP32
+
+[Execution]
+  Warmup Runs            : 0
+  Measured Runs          : 1
+  Random Seed            : 7
+
+[Latency]
+  H2D p50                : 0.200948 ms
+  Kernel p50             : 63.896941 ms
+  Kernel p95             : 63.896941 ms
+  D2H p50                : 0.184777 ms
+  End-to-End p50         : 64.282666 ms
+  End-to-End p95         : 64.282666 ms
+  Kernel / Request       : 63.896941 ms
+  E2E / Request          : 64.282666 ms
+
+[Throughput]
+  Kernel Throughput      : 0.135386 GFLOPS
+  E2E Throughput         : 0.134574 GFLOPS
+  Requests / Second      : 15.556
+  Tokens / Second        : 497.801
+
+[Accuracy]
+  Mean Abs Error         : 0.000185
+  P99 Abs Error          : 0.000990
+  P99.9 Abs Error        : 0.001864
+  Max Abs Error          : 0.001953
+  Worst Coordinate       : batch=0 head=9 row=1 dim=4
+  Reference / Hardware   : 0.833984 / 0.832031
+
+[Verification]
+  Functional Check       : PASS
+  Internal 0.003 Limit   : PASS
+  Final Status           : FUNCTIONALLY CORRECT
+
+[Build]
+  Design / Host          : BF16-PL-V1-BASELINE / 1.0.0-v1-baseline
+  Git Commit             : N/A
+  Host Build Time        : Aug  7 2026 21:46:21
+  xclbin                 : llama3_attention_v1.xclbin
+  xclbin SHA256          : 15b01daedc8d6ba497eaeb2644b299d9bc46c6069d06580db8025fe01cce9b2c
+
+============================================================

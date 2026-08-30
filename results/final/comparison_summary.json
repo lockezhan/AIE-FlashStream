@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "generated_date": "2026-08-30",
+  "benchmark_source_git_sha": "08511b9c83421bba4f15821b8481fca1d1e6e96b",
+  "device": {
+    "board": "AMD Versal VCK5000",
+    "bdf": "0000:af:00.1",
+    "platform": "xilinx_vck5000_gen4x8_qdma_2_202220_1"
+  },
+  "toolchain": {
+    "vitis_vivado": "2022.2",
+    "xrt": "2.15.225",
+    "pl_clock_mhz": 300
+  },
+  "workload": {
+    "scope": "one dense causal-GQA attention workload, not a full Llama3 model",
+    "batch": 1,
+    "sequence_length": 32,
+    "query_heads": 32,
+    "kv_heads": 8,
+    "head_dimension": 128,
+    "seed": 7,
+    "attention_flops_per_request": 8650752
+  },
+  "measurement_protocol": {
+    "samples_per_design": 10,
+    "warmup_per_process": 0,
+    "measured_launches_per_process": 1,
+    "timing_scope": "H2D + kernel + D2H",
+    "independence": "board reset, ready poll, settle, reload, one Host process, one kernel launch",
+    "percentile_method": "nearest-rank; medians below are arithmetic medians of 10 independent samples",
+    "sustained_throughput_claim": false
+  },
+  "pure_pl_v1": {
+    "xclbin_sha256": "15b01daedc8d6ba497eaeb2644b299d9bc46c6069d06580db8025fe01cce9b2c",
+    "host_sha256": "47b2b63547794a422865b12f5961cd8bc87cd97978b59f28510e1f009cc6f12e",
+    "arithmetic": "BF16 Score, FP32 Softmax/PV, BF16 I/O",
+    "timing_ms": {
+      "kernel": {"min": 63.864952, "mean": 63.9076161, "median": 63.9104115, "max": 63.931048},
+      "e2e": {"min": 64.282666, "mean": 64.3639826, "median": 64.3734165, "max": 64.407459}
+    },
+    "effective_gflops": {"kernel_at_median": 0.135357476, "e2e_at_median": 0.134383919},
+    "accuracy": {
+      "mean_abs_error": 0.000185180,
+      "p99_abs_error": 0.000990033,
+      "p999_abs_error": 0.001863956,
+      "max_abs_error": 0.001953006,
+      "functional_005_pass": true,
+      "internal_003_pass": true
+    },
+    "implementation": {
+      "registers": 43710,
+      "clb_lut": 34815,
+      "bram_tiles": 45,
+      "dsp58": 19,
+      "uram": 131,
+      "aie_tiles": 0,
+      "physical_plio": 0,
+      "routed_wns_ns": 0.000,
+      "routed_tns_ns": 0.000
+    }
+  },
+  "final_v21_pv6": {
+    "xclbin_sha256": "bff430b2b827c72469e5b147027786de1cf98a5f5ce587910f04590547d08b58",
+    "host_sha256": "eae8dc337abe6fb0cc47a56b9e7db2a35a08f179d219336b3f7bb31250d0f24b",
+    "arithmetic": "INT8 Score, FP32 Softmax/PV, BF16 I/O",
+    "topology": "8 groups x (1 Score + 1 Softmax + 6 PV)",
+    "pv_widths": [24, 24, 16, 24, 24, 16],
+    "pv_offsets": [0, 24, 48, 64, 88, 112],
+    "timing_ms": {
+      "kernel": {"min": 0.414302, "mean": 0.4748385, "median": 0.470387, "max": 0.519036},
+      "e2e": {"min": 0.918540, "mean": 1.0020767, "median": 0.994343, "max": 1.067933}
+    },
+    "effective_gflops": {"kernel_at_median": 18.390712328, "e2e_at_median": 8.699967717},
+    "accuracy": {
+      "mean_abs_error": 0.000373284,
+      "p99_abs_error": 0.001737416,
+      "p999_abs_error": 0.002876103,
+      "max_abs_error": 0.004983485,
+      "functional_005_pass": true,
+      "internal_003_pass": false
+    },
+    "implementation": {
+      "hls_estimated_fmax_mhz": 411,
+      "registers": 99131,
+      "clb_lut": 62685,
+      "bram_tiles": 186.5,
+      "dsp58": 24,
+      "uram": 0,
+      "aie_tiles": 64,
+      "physical_plio": 16,
+      "routed_wns_ns": 0.119,
+      "routed_tns_ns": 0.000,
+      "routed_whs_ns": 0.010,
+      "routed_ths_ns": 0.000
+    }
+  },
+  "speedup_at_median": {
+    "kernel": 135.867725,
+    "e2e": 64.739649,
+    "kernel_latency_reduction_percent": 99.263990,
+    "e2e_latency_reduction_percent": 98.455352
+  },
+  "fairness_audit": {
+    "matched_b1_completed": true,
+    "matched_b8_completed": false,
+    "v21_b8_result": "first B8 launch timed out after 120 seconds",
+    "repeat_invocation_result": "second launch without reset/reload stalls",
+    "accuracy_equivalent_claim": false
+  },
+  "raw_evidence": {
+    "matched_b1": "results/matched_b1_pure_pl_v1_vs_v21_pv6_20260830/",
+    "failed_matched_b8": "results/matched_b8_pure_pl_v1_vs_v21_pv6_20260830/",
+    "archived_pure_pl_b8": "results/baselines/pure_pl_v1_b8_s32_10run_20260830/"
+  }
+}

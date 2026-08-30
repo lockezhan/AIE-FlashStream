@@ -44,7 +44,7 @@ static const ap_uint<16> kReciprocalMantissaQ15[128] = {
     20007, 19912, 19817, 19723, 19630, 19538, 19446, 19356,
     19266, 19178, 19090, 19002, 18916, 18830, 18746, 18662,
     18578, 18496, 18414, 18333, 18252, 18173, 18094, 18015,
-    17938, 17784, 17709, 17634, 17559, 17485, 17412, 17340,
+    17938, 17861, 17784, 17709, 17634, 17559, 17485, 17412, 17340,
     17268, 17196, 17126, 17055, 16986, 16917, 16848, 16780,
     16713, 16646, 16580, 16514, 16449, 16384, 16320};
 
@@ -134,21 +134,30 @@ inline void read_q_ddr(const DdrWord* q, int batch, DdrStream lane_words[2]) {
 #pragma HLS INLINE off
   const unsigned long long batch_base =
       static_cast<unsigned long long>(batch) * kQWordsPerBatch;
-  for (int group = 0; group < kKvHeads; ++group) {
-    for (int phase = 0; phase < 2; ++phase) {
-      const int q_head0 = group * kQueriesPerKvHead + 2 * phase;
-      const int q_head1 = q_head0 + 1;
+  // Wave-major schedule: Q0 across all groups, then Q1, Q2, and Q3.
+  // Each physical lane owns four groups, not one query of every group.
+  for (int q_in_group = 0; q_in_group < kQueriesPerKvHead; ++q_in_group) {
+    for (int group = 0; group < kKvHeads / 2; ++group) {
+      const int q_head = group * kQueriesPerKvHead + q_in_group;
       for (int row = 0; row < kQuantRows; ++row) {
-        const unsigned long long row0_base =
+        const unsigned long long row_base =
             batch_base +
-            static_cast<unsigned long long>(q_head0 * kQuantRows + row) * 4;
-        const unsigned long long row1_base =
-            batch_base +
-            static_cast<unsigned long long>(q_head1 * kQuantRows + row) * 4;
+            static_cast<unsigned long long>(q_head * kQuantRows + row) * 4;
         for (int word = 0; word < 4; ++word) {
-#pragma HLS PIPELINE II=2
-          lane_words[0].write(q[row0_base + word]);
-          lane_words[1].write(q[row1_base + word]);
+#pragma HLS PIPELINE II=1
+          lane_words[0].write(q[row_base + word]);
+        }
+      }
+    }
+    for (int group = kKvHeads / 2; group < kKvHeads; ++group) {
+      const int q_head = group * kQueriesPerKvHead + q_in_group;
+      for (int row = 0; row < kQuantRows; ++row) {
+        const unsigned long long row_base =
+            batch_base +
+            static_cast<unsigned long long>(q_head * kQuantRows + row) * 4;
+        for (int word = 0; word < 4; ++word) {
+#pragma HLS PIPELINE II=1
+          lane_words[1].write(q[row_base + word]);
         }
       }
     }
@@ -374,8 +383,10 @@ inline void quantize_k_once(DdrStream& words, ScaleStream& scales0,
       const bool has_next = row + 1 < kQuantRows;
       for (int group = 0; group < kQuantGroups; ++group) {
 #pragma HLS UNROLL
-        scales0.write(row_max[current][group]);
-        scales1.write(row_max[current][group]);
+        if (group_index < kKvHeads / 2)
+          scales0.write(row_max[current][group]);
+        else
+          scales1.write(row_max[current][group]);
       }
 
       for (int dim_octet = 0; dim_octet < kQuantHeadD / 8; ++dim_octet) {
@@ -455,8 +466,10 @@ inline void quantize_k_once(DdrStream& words, ScaleStream& scales0,
               packed.range(8 * byte + 7, 8 * byte) =
                   k_octet[key][dim_octet].range(8 * dim + 7, 8 * dim);
             }
-            quantized0.write(packed);
-            quantized1.write(packed);
+            if (group_index < kKvHeads / 2)
+              quantized0.write(packed);
+            else
+              quantized1.write(packed);
           }
         }
       }
@@ -483,17 +496,73 @@ inline void assemble_quantized_packets(ScaleStream& scales, RawStream& quantized
   }
 }
 
-inline void packetize_q(RawStream& payload, AxisStream& packet) {
+inline ap_uint<32> packet_header(unsigned id) {
+#pragma HLS INLINE
+  ap_uint<32> header = 0;
+  header.range(4, 0) = id;
+  header.range(30, 5) = 0;
+  header[31] = header.range(30, 0).xor_reduce() ? ap_uint<1>(0)
+                                                : ap_uint<1>(1);
+  return header;
+}
+
+inline void packetize(RawStream& raw, AxisStream& output, int words,
+                      unsigned id) {
 #pragma HLS INLINE off
-  for (int group = 0; group < kKvHeads; ++group)
-    for (int phase = 0; phase < 2; ++phase)
+  const ap_uint<128> first = raw.read();
+  AxisWord packet;
+  packet.data.range(31, 0) = packet_header(id);
+  packet.data.range(127, 32) = first.range(95, 0);
+  packet.keep = -1;
+  packet.strb = -1;
+  packet.last = 0;
+  output.write(packet);
+  ap_uint<32> delayed = first.range(127, 96);
+  for (int word = 1; word < words; ++word) {
+#pragma HLS PIPELINE II=1
+    const ap_uint<128> input = raw.read();
+    packet.data.range(31, 0) = delayed;
+    packet.data.range(127, 32) = input.range(95, 0);
+    packet.keep = -1;
+    packet.strb = -1;
+    packet.last = 0;
+    output.write(packet);
+    delayed = input.range(127, 96);
+  }
+  packet.data = 0;
+  packet.data.range(31, 0) = delayed;
+  packet.keep = 0x000f;
+  packet.strb = 0x000f;
+  packet.last = 1;
+  output.write(packet);
+}
+
+inline void packetize_q_lane0(RawStream& payload, AxisStream& packet) {
+#pragma HLS INLINE off
+  for (int q_in_group = 0; q_in_group < kQueriesPerKvHead; ++q_in_group)
+    for (int group = 0; group < kKvHeads / 2; ++group)
       packetize(payload, packet, kPacketWordsPerHead, kQuantPacketId[group]);
 }
 
-inline void packetize_k(RawStream& payload, AxisStream& packet) {
+inline void packetize_q_lane1(RawStream& payload, AxisStream& packet) {
 #pragma HLS INLINE off
-  for (int group = 0; group < kKvHeads; ++group)
+  for (int q_in_group = 0; q_in_group < kQueriesPerKvHead; ++q_in_group)
+    for (int group = kKvHeads / 2; group < kKvHeads; ++group)
+      packetize(payload, packet, kPacketWordsPerHead,
+                kQuantPacketId[group % (kKvHeads / 2)]);
+}
+
+inline void packetize_k_lane0(RawStream& payload, AxisStream& packet) {
+#pragma HLS INLINE off
+  for (int group = 0; group < kKvHeads / 2; ++group)
     packetize(payload, packet, kPacketWordsPerHead, kQuantPacketId[group]);
+}
+
+inline void packetize_k_lane1(RawStream& payload, AxisStream& packet) {
+#pragma HLS INLINE off
+  for (int group = kKvHeads / 2; group < kKvHeads; ++group)
+    packetize(payload, packet, kPacketWordsPerHead,
+              kQuantPacketId[group % (kKvHeads / 2)]);
 }
 
 }  // namespace llama3_attn

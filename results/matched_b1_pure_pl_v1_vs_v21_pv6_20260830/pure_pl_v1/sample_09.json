@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "design": "BF16-PL-V1-BASELINE",
+  "host_version": "1.0.0-v1-baseline",
+  "platform": "VCK5000",
+  "kernel": "llama3_attention",
+  "batch": 1,
+  "sequence_length": 32,
+  "query_heads": 32,
+  "kv_heads": 8,
+  "head_dimension": 128,
+  "aie_tiles": 0,
+  "output_planes": 1,
+  "runs": 1,
+  "warmup": 0,
+  "seed": 7,
+  "timing_scope": "H2D + kernel + D2H",
+  "percentile_method": "nearest-rank: sorted[ceil(q*N)-1]",
+  "timing_ms": {
+    "h2d": {
+      "min": 0.267819000,
+      "mean": 0.267819000,
+      "p50": 0.267819000,
+      "p90": 0.267819000,
+      "p95": 0.267819000,
+      "p99": 0.267819000,
+      "max": 0.267819000,
+      "stddev": 0.000000000
+    },
+    "kernel": {
+      "min": 63.864952000,
+      "mean": 63.864952000,
+      "p50": 63.864952000,
+      "p90": 63.864952000,
+      "p95": 63.864952000,
+      "p99": 63.864952000,
+      "max": 63.864952000,
+      "stddev": 0.000000000
+    },
+    "d2h": {
+      "min": 0.200524000,
+      "mean": 0.200524000,
+      "p50": 0.200524000,
+      "p90": 0.200524000,
+      "p95": 0.200524000,
+      "p99": 0.200524000,
+      "max": 0.200524000,
+      "stddev": 0.000000000
+    },
+    "e2e": {
+      "min": 64.333295000,
+      "mean": 64.333295000,
+      "p50": 64.333295000,
+      "p90": 64.333295000,
+      "p95": 64.333295000,
+      "p99": 64.333295000,
+      "max": 64.333295000,
+      "stddev": 0.000000000
+    }
+  },
+  "per_request_ms": {
+    "kernel_p50": 63.864952000,
+    "e2e_p50": 64.333295000
+  },
+  "throughput": {
+    "attention_flops_per_batch": 8650752.000000000,
+    "kernel_gflops": 0.135453825,
+    "e2e_gflops": 0.134467728,
+    "requests_per_second": 15.544050713,
+    "tokens_per_second": 497.409622809
+  },
+  "accuracy": {
+    "measured": true,
+    "mean_abs_error": 0.000185180,
+    "p99_abs_error": 0.000990033,
+    "p999_abs_error": 0.001863956,
+    "max_abs_error": 0.001953006,
+    "functional_pass": true,
+    "internal_003_pass": true,
+    "worst_coordinate": {"batch": 0, "head": 9, "row": 1, "dimension": 4},
+    "reference_value": 0.833984256,
+    "hardware_value": 0.832031250
+  },
+  "environment": {
+    "xclbin_path": "llama3_attention_v1.xclbin",
+    "xclbin_sha256": "15b01daedc8d6ba497eaeb2644b299d9bc46c6069d06580db8025fe01cce9b2c",
+    "git_commit": "N/A",
+    "host_build_time": "Aug  7 2026 21:46:21",
+    "xrt_version": "2.15.225",
+    "device_bdf": "0000:af:00.1",
+    "device_name": "xilinx_vck5000_gen4x8_qdma_base_2"
+  }
+}

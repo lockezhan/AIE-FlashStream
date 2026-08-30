@@ -1,8 +1,0 @@
-V18-5PV-S32 final implementation timing
-Target PL frequency: 300 MHz
-WNS: +0.007 ns
-TNS: 0.000 ns
-WHS: +0.012 ns
-THS: 0.000 ns
-VPL check errors: 0
-POST-VPL check errors: 0

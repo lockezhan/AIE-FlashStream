@@ -87,7 +87,7 @@ void verify_value_payload(const std::vector<ap_uint<128>>& payload,
 }
 
 void verify_value_input_transport(const std::vector<DdrWord>& value) {
-  RawStream raw[5];
+  RawStream raw[6];
   route_v_bf16(value.data(), 0, raw);
   for (int slice = 0; slice < kSliceCount; ++slice) {
     for (int group = 0; group < kKvHeads; ++group) {
@@ -101,8 +101,8 @@ void verify_value_input_transport(const std::vector<DdrWord>& value) {
     if (!raw[slice].empty()) fail("unexpected Value input token");
   }
 
-  RawStream packet_raw[5];
-  AxisStream packet_axis[5];
+  RawStream packet_raw[6];
+  AxisStream packet_axis[6];
   route_v_bf16(value.data(), 0, packet_raw);
   for (int slice = 0; slice < kSliceCount; ++slice) {
     packetize_v(packet_raw[slice], packet_axis[slice],
@@ -157,13 +157,13 @@ void append_output_packet(AxisStream& axis, int slice, int group, int phase) {
     }
   }
   if (lane != 0) fail("output packet is not 128-bit aligned");
-  const int words = width == 28 ? 224 : 192;
+  const int words = 2 * kCompactSequence * width * 2 / 16;
   packetize(payload, axis, words, output_packet_id(slice, group));
   if (!payload.empty()) fail("output packet payload count mismatch");
 }
 
 void verify_output_reorder() {
-  AxisStream output_axis[5];
+  AxisStream output_axis[6];
   for (int slice = 0; slice < kSliceCount; ++slice) {
     const auto order = group_order(slice);
     for (int phase = 0; phase < kPacketsPerGroup; ++phase)
@@ -171,31 +171,33 @@ void verify_output_reorder() {
         append_output_packet(output_axis[slice], slice, group, phase);
   }
 
-  hls::stream<SlicePair<28>> pairs28[2];
-  hls::stream<SlicePair<24>> pairs24[3];
-  SliceRowStream rows[5];
-  SliceRowStream cross_left[3];
-  SliceRowStream cross_right[3];
-  drain_output_pairs<28>(output_axis[0], pairs28[0], kOIdToGroup[0]);
-  drain_output_pairs<28>(output_axis[1], pairs28[1], kOIdToGroup[1]);
-  drain_output_pairs<24>(output_axis[2], pairs24[0], kOIdToGroup[2]);
-  drain_output_pairs<24>(output_axis[3], pairs24[1], kOIdToGroup[3]);
-  drain_output_pairs<24>(output_axis[4], pairs24[2], kOIdToGroup[4]);
-  for (int slice = 0; slice < 2; ++slice)
-    split_output_pairs<28>(pairs28[slice], rows[slice]);
-  for (int slice = 0; slice < 3; ++slice)
-    split_output_pairs<24>(pairs24[slice], rows[slice + 2]);
-  for (int slice = 0; slice < 3; ++slice)
-    fanout_slice_rows(rows[slice + 1], cross_left[slice], cross_right[slice]);
+  hls::stream<SlicePair<24>> pairs24[4];
+  hls::stream<SlicePair<16>> pairs16[2];
+  SliceRowStream rows[6];
+  SliceRowStream slice1_left, slice1_right, slice4_left, slice4_right;
+  drain_output_pairs<24>(output_axis[0], pairs24[0], kOIdToGroup[0]);
+  drain_output_pairs<24>(output_axis[1], pairs24[1], kOIdToGroup[1]);
+  drain_output_pairs<16>(output_axis[2], pairs16[0], kOIdToGroup[2]);
+  drain_output_pairs<24>(output_axis[3], pairs24[2], kOIdToGroup[3]);
+  drain_output_pairs<24>(output_axis[4], pairs24[3], kOIdToGroup[4]);
+  drain_output_pairs<16>(output_axis[5], pairs16[1], kOIdToGroup[5]);
+  split_output_pairs<24>(pairs24[0], rows[0]);
+  split_output_pairs<24>(pairs24[1], rows[1]);
+  split_output_pairs<16>(pairs16[0], rows[2]);
+  split_output_pairs<24>(pairs24[2], rows[3]);
+  split_output_pairs<24>(pairs24[3], rows[4]);
+  split_output_pairs<16>(pairs16[1], rows[5]);
+  fanout_slice_rows(rows[1], slice1_left, slice1_right);
+  fanout_slice_rows(rows[4], slice4_left, slice4_right);
 
   std::vector<DdrWord> plane0(kRowsPerBatch);
   std::vector<DdrWord> plane1(kRowsPerBatch);
   std::vector<DdrWord> plane2(kRowsPerBatch);
   std::vector<DdrWord> plane3(kRowsPerBatch);
-  assemble_output_plane<0, 28, 0, 4>(rows[0], cross_left[0], plane0.data(), 0);
-  assemble_output_plane<4, 24, 0, 8>(cross_right[0], cross_left[1], plane1.data(), 0);
-  assemble_output_plane<8, 16, 0, 16>(cross_right[1], cross_left[2], plane2.data(), 0);
-  assemble_output_plane<16, 8, 0, 24>(cross_right[2], rows[4], plane3.data(), 0);
+  assemble_output_plane<0, 24, 0, 8>(rows[0], slice1_left, plane0.data(), 0);
+  assemble_output_plane<8, 16, 0, 16>(slice1_right, rows[2], plane1.data(), 0);
+  assemble_output_plane<0, 24, 0, 8>(rows[3], slice4_left, plane2.data(), 0);
+  assemble_output_plane<8, 16, 0, 16>(slice4_right, rows[5], plane3.data(), 0);
 
   const DdrWord* planes[4] = {plane0.data(), plane1.data(), plane2.data(), plane3.data()};
   for (int q_head = 0; q_head < kQueryHeads; ++q_head) {
@@ -205,7 +207,7 @@ void verify_output_reorder() {
       for (int dim = 0; dim < 128; ++dim) {
         const uint16_t actual = lane16(planes[dim / 32][row_index], dim % 32);
         if (actual != marker(selected_key, dim))
-          fail("five-slice to four-plane reorder mismatch");
+          fail("six-slice to four-plane reorder mismatch");
       }
     }
   }
@@ -213,14 +215,54 @@ void verify_output_reorder() {
     if (!axis.empty()) fail("unexpected output packet beat");
 }
 
+void fill_payload(RawStream& payload, int packets) {
+  for (int word = 0; word < packets * kPacketWordsPerHead; ++word)
+    payload.write(ap_uint<128>(word));
+}
+
+void verify_qk_partition_and_schedule() {
+  RawStream q_payload[2];
+  AxisStream q_axis[2];
+  fill_payload(q_payload[0], 2 * kKvHeads);
+  fill_payload(q_payload[1], 2 * kKvHeads);
+  packetize_q_lane0(q_payload[0], q_axis[0]);
+  packetize_q_lane1(q_payload[1], q_axis[1]);
+
+  for (int q_in_group = 0; q_in_group < kQueriesPerKvHead; ++q_in_group) {
+    for (int local_group = 0; local_group < kKvHeads / 2; ++local_group) {
+      read_packet(q_axis[0], kPacketWordsPerHead, local_group);
+      read_packet(q_axis[1], kPacketWordsPerHead, local_group);
+    }
+  }
+  if (!q_payload[0].empty() || !q_payload[1].empty() ||
+      !q_axis[0].empty() || !q_axis[1].empty())
+    fail("Q wave-major packet count mismatch");
+
+  RawStream k_payload[2];
+  AxisStream k_axis[2];
+  fill_payload(k_payload[0], kKvHeads / 2);
+  fill_payload(k_payload[1], kKvHeads / 2);
+  packetize_k_lane0(k_payload[0], k_axis[0]);
+  packetize_k_lane1(k_payload[1], k_axis[1]);
+  for (int local_group = 0; local_group < kKvHeads / 2; ++local_group) {
+    read_packet(k_axis[0], kPacketWordsPerHead, local_group);
+    read_packet(k_axis[1], kPacketWordsPerHead, local_group);
+  }
+  if (!k_payload[0].empty() || !k_payload[1].empty() ||
+      !k_axis[0].empty() || !k_axis[1].empty())
+    fail("K partition packet count mismatch");
+}
+
 }  // namespace
 
 int main() {
   std::vector<DdrWord> value(kKvHeads * kCompactSequence * 4);
   fill_value_ddr(value);
+  verify_qk_partition_and_schedule();
   verify_value_input_transport(value);
   verify_output_reorder();
-  std::cout << "PL C-sim PASS: strict 112/96 input and 224/192 output words\n";
-  std::cout << "PL C-sim PASS: 5 slices -> 4 contiguous 512-bit DDR planes\n";
+  std::cout << "PL C-sim PASS: strict 96/64 input and 192/128 output words\n";
+  std::cout << "PL C-sim PASS: Q wave-major 16/lane, K partitioned 4/lane\n";
+  std::cout << "PL C-sim PASS: 6 slices -> 4 contiguous 512-bit DDR planes\n";
   return 0;
 }

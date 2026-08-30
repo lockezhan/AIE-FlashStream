@@ -31,10 +31,10 @@ namespace fs = std::filesystem;
 namespace {
 
 #ifndef LLAMA3_HOST_VERSION
-#define LLAMA3_HOST_VERSION "1.0.0"
+#define LLAMA3_HOST_VERSION "21.0.0"
 #endif
 #ifndef LLAMA3_DESIGN_VERSION
-#define LLAMA3_DESIGN_VERSION "Llama3-AIE-FlashStream"
+#define LLAMA3_DESIGN_VERSION "Llama3-AIE-FlashStream V21 PV6"
 #endif
 #ifndef LLAMA3_KERNEL_NAME
 #define LLAMA3_KERNEL_NAME "llama3_attention"

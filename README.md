@@ -1,35 +1,80 @@
-# AIE-FlashStream — Llama3-8B GQA Attention Accelerator
+# AIE-FlashStream
 
-AIE-FlashStream is the project name of our streaming GQA attention accelerator. The term “FlashStream” denotes the streaming hardware dataflow and does not imply an implementation of the FlashAttention algorithm.
+AIE-FlashStream is a GQA-aware Llama3-8B causal-attention accelerator for the
+AMD Versal VCK5000. “FlashStream” names the streaming hardware dataflow; this
+project does **not** implement or claim the FlashAttention algorithm.
 
-![AIE-FlashStream Architecture](figures/Figure1.png)
+![AIE-FlashStream Final Architecture](figures/AIE-FlashStream_Final_Architecture.png)
 
-This repository contains the complete source code (`aie/`, `host/`, `pl/`, `link/`) and prebuilt binary (`llama3_attention.xclbin`) for the Llama3-8B GQA Attention Accelerator on the AMD Versal VCK5000 board.
+## Final architecture
 
-## Architecture Highlights
+The frozen workload is `S=32`, `HQ=32`, `HKV=8`, `D=128`, with four query
+heads sharing each KV head. The eight GQA groups each contain one Score tile,
+one Softmax tile and six PV tiles:
 
-- **Workload**: Batch-configurable, Sequence Length = 32, Query Heads = 32, KV Heads = 8 (GQA 4:1 ratio), Head Dimension = 128.
-- **Compute Precision**:
-  - **Q/K Score GEMM**: INT8 × INT8 accumulated into INT32 in AIE vector compute.
-  - **Softmax / P*V Accumulation**: FP32 internal precision with BF16 input/output rounding.
-- **AIE Topology**: 64 mapped active AIE compute tiles across 8 GQA groups (2 score, 1 softmax, 5 value/update lanes per group).
-- **PL Streaming Shell**: 5-slice parallel packetized streaming interface to AIE with 4-plane 512-bit DDR output reconstruction.
-- **Frequency**: 300 MHz PL & AIE domain clocking.
+```text
+8 groups × (1 Score + 1 Softmax + 6 PV) = 64 AIE compute tiles
+```
 
-## Repository Structure
+The six PV slices cover dimensions `24/24/16/24/24/16` at offsets
+`0/24/48/64/88/112`. Physical PLIO comprises two Q, two K, six V and six O
+streams (16 total).
 
-- `aie/`: AI Engine graph, kernels (score, fused softmax, value), and tile layout specifications.
-- `pl/`: HLS PL shell kernel, packetizer, and quantizer logic.
-- `link/`: Vitis link connectivity config files (`eight_groups_packet.cfg`).
-- `host/`: Host benchmark application built with standard XRT C++ APIs.
-- `figures/`: Architecture diagrams and illustrations.
-- `llama3_attention.xclbin`: Prebuilt board-tested 300 MHz accelerator image for VCK5000.
-- `tests/`: Reference CPU PyTorch/Python attention oracle and transport testbenches.
-- `reports/`: Timing and HLS synthesis summaries.
+The PL shell accepts BF16 Q/K/V, quantizes Q/K to INT8, packetizes and
+schedules the streams, and reconstructs BF16 output into four contiguous
+32-dimensional planes. AIE tiles execute INT8 Score, FP32 Softmax and FP32 PV.
+Each graph invocation uses two phases: phase 0 processes Q0/Q1 and loads K/V;
+phase 1 processes Q2/Q3 and reuses the tile-local K/V state.
 
-## Quick Start
+## Tested platform
+
+- Board: AMD Versal VCK5000
+- Platform: `xilinx_vck5000_gen4x8_qdma_2_202220_1`
+- Vitis/Vivado: 2022.2
+- XRT: 2.15.225
+- PL clock: 300 MHz
+
+## Headline performance (Matched B=1 vs Pure-PL Baseline)
+
+| Metric | Pure-PL V1 Baseline | AIE-FlashStream | Speedup / Improvement |
+|---|---:|---:|---:|
+| **Kernel Latency (median)** | 63.910 ms | **0.470 ms** | **135.87×** (99.26% reduction) |
+| **End-to-End Latency (median)** | 64.373 ms | **0.994 ms** | **64.74×** (98.46% reduction) |
+| **Numerical Accuracy (MAE)** | — | **3.73e-4** | INT8 quantization error |
+
+## Repository structure
+
+- `aie/`: final AIE graph, kernels and tile placement
+- `pl/`: HLS quantization, packet transport and output reconstruction
+- `link/eight_groups_packet_pv6.cfg`: final PL/AIE connectivity
+- `host/`: XRT host, verification and benchmark reporting
+- `scripts/`: final compile, rebuild and board benchmark entry points
+- `tests/`: numerical oracle and transport/compile gates
+- `prebuilt/vck5000/v21_pv6/`: SHA-pinned board-tested V21 xclbin
+- `docs/`: architecture, reproducibility and performance sources of truth
+- `reports/`: compact final implementation summaries
+- `results/`: immutable raw evidence and paper-level summaries
+
+## Quick start
 
 ```bash
+export XILINX_XRT=/opt/xilinx/xrt
 make
-./host/llama3_attention_host.exe --xclbin llama3_attention.xclbin
+
+cd prebuilt/vck5000/v21_pv6
+sha256sum -c SHA256SUMS
+cd ../../..
+
+/opt/xilinx/xrt/bin/xbutil reset --device 0000:af:00.1
+./host/llama3_attention_host.exe \
+  --xclbin prebuilt/vck5000/v21_pv6/llama3_attention_v21_pv6.xclbin \
+  --batch 1 --warmup 0 --runs 1 --seed 7 --verify --profile
 ```
+
+See [architecture](docs/ARCHITECTURE.md),
+[reproducibility](docs/REPRODUCIBILITY.md),
+[performance](docs/PERFORMANCE.md), [build](BUILD.md), and [run](RUN.md).
+
+The current xclbin completes isolated requests but does not support repeated
+launches without reset/reload. This limitation is part of the published
+performance protocol and must not be hidden in throughput claims.
