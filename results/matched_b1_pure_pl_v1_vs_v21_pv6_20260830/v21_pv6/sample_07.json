@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "design": "Llama3-AIE-FlashStream V21 PV6",
+  "host_version": "21.0.0",
+  "platform": "VCK5000",
+  "kernel": "llama3_attention",
+  "batch": 1,
+  "sequence_length": 32,
+  "query_heads": 32,
+  "kv_heads": 8,
+  "head_dimension": 128,
+  "aie_tiles": 64,
+  "output_planes": 4,
+  "runs": 1,
+  "warmup": 0,
+  "seed": 7,
+  "timing_scope": "H2D + kernel + D2H",
+  "percentile_method": "nearest-rank: sorted[ceil(q*N)-1]",
+  "timing_ms": {
+    "h2d": {
+      "min": 0.296641000,
+      "mean": 0.296641000,
+      "p50": 0.296641000,
+      "p90": 0.296641000,
+      "p95": 0.296641000,
+      "p99": 0.296641000,
+      "max": 0.296641000,
+      "stddev": 0.000000000
+    },
+    "kernel": {
+      "min": 0.519036000,
+      "mean": 0.519036000,
+      "p50": 0.519036000,
+      "p90": 0.519036000,
+      "p95": 0.519036000,
+      "p99": 0.519036000,
+      "max": 0.519036000,
+      "stddev": 0.000000000
+    },
+    "d2h": {
+      "min": 0.252256000,
+      "mean": 0.252256000,
+      "p50": 0.252256000,
+      "p90": 0.252256000,
+      "p95": 0.252256000,
+      "p99": 0.252256000,
+      "max": 0.252256000,
+      "stddev": 0.000000000
+    },
+    "e2e": {
+      "min": 1.067933000,
+      "mean": 1.067933000,
+      "p50": 1.067933000,
+      "p90": 1.067933000,
+      "p95": 1.067933000,
+      "p99": 1.067933000,
+      "max": 1.067933000,
+      "stddev": 0.000000000
+    }
+  },
+  "per_request_ms": {
+    "kernel_p50": 0.519036000,
+    "e2e_p50": 1.067933000
+  },
+  "throughput": {
+    "attention_flops_per_batch": 8650752.000000000,
+    "kernel_gflops": 16.666959517,
+    "e2e_gflops": 8.100463231,
+    "requests_per_second": 936.388331478,
+    "tokens_per_second": 29964.426607287
+  },
+  "accuracy": {
+    "measured": true,
+    "mean_abs_error": 0.000373284,
+    "p99_abs_error": 0.001737416,
+    "p999_abs_error": 0.002876103,
+    "max_abs_error": 0.004983485,
+    "functional_pass": true,
+    "internal_003_pass": false,
+    "worst_coordinate": {"batch": 0, "head": 1, "row": 3, "dimension": 38},
+    "reference_value": 0.340920985,
+    "hardware_value": 0.335937500
+  },
+  "environment": {
+    "xclbin_path": "llama3_attention_v21_pv6.xclbin",
+    "xclbin_sha256": "bff430b2b827c72469e5b147027786de1cf98a5f5ce587910f04590547d08b58",
+    "host_build_time": "Aug 29 2026 23:21:58",
+    "xrt_version": "2.15.225",
+    "device_bdf": "0000:af:00.1",
+    "device_name": "xilinx_vck5000_gen4x8_qdma_base_2"
+  }
+}
