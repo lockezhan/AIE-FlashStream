@@ -4,7 +4,7 @@ AIE-FlashStream is a GQA-aware Llama3-8B causal-attention accelerator for the
 AMD Versal VCK5000. “FlashStream” names the streaming hardware dataflow; this
 project does **not** implement or claim the FlashAttention algorithm.
 
-![Final V21 PV6 architecture](figures/Figure1.png)
+![AIE-FlashStream Final Architecture](figures/AIE-FlashStream_Final_Architecture.png)
 
 ## Final architecture
 
@@ -33,6 +33,14 @@ phase 1 processes Q2/Q3 and reuses the tile-local K/V state.
 - Vitis/Vivado: 2022.2
 - XRT: 2.15.225
 - PL clock: 300 MHz
+
+## Headline performance (Matched B=1 vs Pure-PL Baseline)
+
+| Metric | Pure-PL V1 Baseline | AIE-FlashStream | Speedup / Improvement |
+|---|---:|---:|---:|
+| **Kernel Latency (median)** | 63.910 ms | **0.470 ms** | **135.87×** (99.26% reduction) |
+| **End-to-End Latency (median)** | 64.373 ms | **0.994 ms** | **64.74×** (98.46% reduction) |
+| **Numerical Accuracy (MAE)** | — | **3.73e-4** | INT8 quantization error |
 
 ## Repository structure
 
