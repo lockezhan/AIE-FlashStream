@@ -1,40 +1,53 @@
+# Host and hardware build products
 *.exe
 *.o
+*.a
+*.xo
+*.xsa
+*.ltx
+*.xclbin
+!prebuilt/vck5000/v21_pv6/llama3_attention_v21_pv6.xclbin
+
+# Tool logs and temporary reports (selected benchmark logs are force-tracked)
 *.log
-_x/
-.Xil/
-.ipcache/
-*.json
-*.csv
-!llama3_attention.xclbin
 
-# Python cache
-__pycache__/
-*.pyc
-
-# Build output directories
-/build.*/
+# Vitis/Vivado/AIE working directories
 /build/
-/build.hw_v20_single_score_2phase/
-/build.check_v20_single_score_2phase/
-/build.sim_v20_single_score_2phase/
+/build.*/
+/_x/
+.Xil/
+/.ipcache/
 /aie/build.*/
 /aie/Work/
 /aie/Work*/
 /aie/sol.db
 
-# Simulation output and artifacts
-/aiesimulator_output*
-/x86simulator_output*
-/aie/x86simulator_output*
-/aie/aiesimulator_output*
+# Generated simulation databases and traffic
+/aiesimulator_output*/
+/x86simulator_output*/
+/aie/x86simulator_output*/
+/aie/aiesimulator_output*/
 /aie/packet_*.txt
 /aie/expected.json
+/aie_metadata.json
+/aie/Map_Report.csv
 /tests/*-sim-data/
 *.vcd
 *.wdb
-BOOT.BIN
-boot_image.bif
-aie.merged.cdo.bin
-ISS_RPC_SERVER_PORT
-.AIE_SIM_CMD_LINE_OPTIONS
+
+# Generated root artifacts
+/BOOT.BIN
+/boot_image.bif
+/aie.merged.cdo.bin
+/main_benchmark.json
+/diag_report.log
+/rebuild_both.log
+/v21_rebuild.log
+/test_pl_compile.log
+/xsc_report.log
+/ISS_RPC_SERVER_PORT
+/.AIE_SIM_CMD_LINE_OPTIONS
+
+# Python cache
+__pycache__/
+*.pyc

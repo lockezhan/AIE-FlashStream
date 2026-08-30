@@ -3,21 +3,22 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BUILD_DIR="$ROOT/build.check_v21_pv6"
-PLATFORM=/opt/xilinx/platforms/xilinx_vck5000_gen4x8_qdma_2_202220_1/xilinx_vck5000_gen4x8_qdma_2_202220_1.xpfm
-VITIS_SETTINGS=/s3/Xilinx_Vitis_2022.2/Vitis/2022.2/settings64.sh
+VITIS_ROOT="${VITIS_ROOT:-/s3/Xilinx_Vitis_2022.2/Vitis/2022.2}"
+PLATFORM="${VCK5000_PLATFORM:-/opt/xilinx/platforms/xilinx_vck5000_gen4x8_qdma_2_202220_1/xilinx_vck5000_gen4x8_qdma_2_202220_1.xpfm}"
+VITIS_SETTINGS="${VITIS_SETTINGS:-$VITIS_ROOT/settings64.sh}"
+VITIS_HLS_INCLUDE="${VITIS_HLS_INCLUDE:-/s3/Xilinx_Vitis_2022.2/Vitis_HLS/2022.2/include}"
 
 [[ "$BUILD_DIR" == "$ROOT/build.check_v21_pv6" ]] || exit 2
 rm -rf -- "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 # shellcheck source=/dev/null
 source "$VITIS_SETTINGS"
-export XILINXD_LICENSE_FILE=/home/psdz/.Xilinx/Xilinx.lic
-export XILINX_VITIS_AIETOOLS="${XILINX_VITIS_AIETOOLS:-/s3/Xilinx_Vitis_2022.2/Vitis/2022.2/aietools}"
+export XILINX_VITIS_AIETOOLS="${XILINX_VITIS_AIETOOLS:-$VITIS_ROOT/aietools}"
 export PATH="$XILINX_VITIS_AIETOOLS/bin:$XILINX_VITIS_AIETOOLS/tps/lnx64/target/bin/LNa64bin:$PATH"
 
 echo "[1/5] Reciprocal LUT and PL transport"
 python3 "$ROOT/tests/check_reciprocal_lut.py"
-g++ -std=c++17 -O2 -I/s3/Xilinx_Vitis_2022.2/Vitis_HLS/2022.2/include \
+g++ -std=c++17 -O2 -I"$VITIS_HLS_INCLUDE" \
   -I"$ROOT/pl" "$ROOT/tests/pl_transport_tb.cpp" -o "$BUILD_DIR/pl_transport_tb"
 "$BUILD_DIR/pl_transport_tb"
 

@@ -1,7 +1,7 @@
 XILINX_XRT ?= /opt/xilinx/xrt
 VITIS_ROOT ?= /s3/Xilinx_Vitis_2022.2/Vitis/2022.2
 HOST_EXE := host/llama3_attention_host.exe
-XCLBIN := llama3_attention.xclbin
+XCLBIN := prebuilt/vck5000/v21_pv6/llama3_attention_v21_pv6.xclbin
 
 all: $(HOST_EXE)
 
@@ -12,7 +12,8 @@ $(HOST_EXE): host/llama3_attention_host.cpp
 		-Wl,-rpath,$(XILINX_XRT)/lib -pthread -o $@ $< -lxrt_coreutil
 
 run: $(HOST_EXE)
-	./$(HOST_EXE) --xclbin $(XCLBIN)
+	./$(HOST_EXE) --xclbin $(XCLBIN) --batch 1 --warmup 0 --runs 1 \
+		--seed 7 --verify --profile
 
 clean:
 	rm -rf host/*.exe build/
